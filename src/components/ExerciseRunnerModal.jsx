@@ -122,7 +122,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
   const handleFinishExercise = () => {
     try {
       if (typeof onSaveExerciseSets === 'function') {
-        onSaveExerciseSets(sets, elapsedSecs, startedAt);
+        onSaveExerciseSets(sets, elapsedSecs, focusStartMs);
       }
     } catch (e) {
       console.error('Error saving exercise sets:', e);

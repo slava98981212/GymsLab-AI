@@ -15,6 +15,7 @@ import {
 
 export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, onSelectDate }) {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const todayDayName = dayNames[new Date().getDay()];
 
   // Calculate day name corresponding to dailyLog.date
   const getDayNameFromDateStr = (dateStr) => {
