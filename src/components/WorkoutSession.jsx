@@ -681,7 +681,9 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                     {currentDayProgram.mainExercises.map((progEx) => {
-                      const isLoaded = exercises.some((e) => e.exerciseId === progEx.id);
+                      const ex = exercises.find((e) => e.exerciseId === progEx.id);
+                      const isLoaded = !!ex;
+                      const isDone = ex?.completed || false;
                       const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
 
                       return (
@@ -719,10 +721,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                           </div>
 
                           <button
-                            className={ex.completed ? 'btn-emerald' : isLoaded ? 'btn-primary' : 'btn-secondary'}
+                            className={isDone ? 'btn-emerald' : isLoaded ? 'btn-primary' : 'btn-secondary'}
                             style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                           >
-                            {ex.completed ? 'DONE ✓' : isLoaded ? 'Open Focus' : 'Start'} {ex.completed ? <CheckCircle2 size={12} /> : <Play size={12} />}
+                            {isDone ? 'DONE ✓' : isLoaded ? 'Open Focus' : 'Start'} {isDone ? <CheckCircle2 size={12} /> : <Play size={12} />}
                           </button>
                         </div>
                       );
