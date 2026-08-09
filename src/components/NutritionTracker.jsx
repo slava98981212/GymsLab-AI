@@ -510,12 +510,12 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
             <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>
               Short Description / Quantities (Optional - leave empty for photo only)
             </label>
-            <input
-              type="text"
-              placeholder="e.g. 200g salmon, 150g rice..."
+            <textarea
+              rows={4}
+              placeholder="e.g. 200g salmon, 150g rice, 1 tbsp olive oil..."
               value={photoNotesInput}
               onChange={(e) => setPhotoNotesInput(e.target.value)}
-              className="input-field"
+              className="input-field input-textarea"
               style={{ marginBottom: '1rem' }}
             />
 
@@ -619,12 +619,12 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
             </p>
 
             <textarea
-              rows={3}
+              rows={4}
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               placeholder="e.g. 3 scrambled eggs with 2 slices of whole wheat toast and 1 apple..."
-              className="input-field"
-              style={{ marginBottom: '1rem', resize: 'none' }}
+              className="input-field input-textarea"
+              style={{ marginBottom: '1rem' }}
             />
 
             <button onClick={handleAnalyzeTextMeal} className="btn-primary" style={{ width: '100%' }} disabled={analyzingText}>

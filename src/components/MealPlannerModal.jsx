@@ -90,15 +90,15 @@ export default function MealPlannerModal({ targetMacros, apiKey, onAddMealToLog,
           </div>
 
           <div>
-            <label style={{ fontSize: '0.75rem', color: 'var(--accent-amber)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--accent-amber)', fontWeight: 700, display: 'block', marginBottom: '0.3rem' }}>
               Specific Foods / Cravings Wishes Today (Optional)
             </label>
-            <input
-              type="text"
+            <textarea
+              rows={3}
               placeholder="e.g. Ribeye steak with sweet potato, berry protein smoothie..."
               value={cravings}
               onChange={(e) => setCravings(e.target.value)}
-              className="input-field"
+              className="input-field input-textarea"
             />
           </div>
         </div>
