@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Sparkles, Plus, Trash2, Utensils, Edit2, Check, FileText, X, Droplets, Footprints, Pill, ChefHat, CheckSquare, Square } from 'lucide-react';
+import { Camera, Sparkles, Plus, Trash2, Utensils, Edit2, Check, FileText, X, Droplets, Footprints, Pill, ChefHat, CheckSquare, Square, BookOpen, ShoppingCart, Flame } from 'lucide-react';
 import { analyzeFoodPhoto, analyzeFoodText } from '../services/openai';
 import MealPlannerModal from './MealPlannerModal';
 
@@ -21,6 +21,9 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
   // Edit Single Logged Meal Modal State
   const [editingMeal, setEditingMeal] = useState(null);
 
+  // View Detailed Recipe & Ingredients Modal State (Double Click / Tap on Logged Meal)
+  const [recipeMealView, setRecipeMealView] = useState(null);
+
   // AI Meal Planner Modal State
   const [showPlannerModal, setShowPlannerModal] = useState(false);
 
@@ -28,10 +31,10 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
   const foodPhotos = dailyLog?.foodPhotos || [];
 
   // Water & Steps State
-  const waterLiters = dailyLog?.waterLiters || 0; // target 3.5 L
-  const stepsCount = dailyLog?.steps || 0;       // target 10,000 steps
+  const waterLiters = dailyLog?.waterLiters || 0;
+  const stepsCount = dailyLog?.steps || 0;
 
-  // Supplements & Vitamins State (Creatine, Whey Protein, Magnesium, Zinc, Vitamin D)
+  // Supplements & Vitamins State
   const supplements = dailyLog?.supplements || { creatine: false, protein: false };
   const vitamins = dailyLog?.vitamins || {
     magnesium: false,
@@ -238,6 +241,15 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
             </div>
           </div>
         </div>
+
+        {/* AI Custom Meal Planner Trigger */}
+        <button
+          onClick={() => setShowPlannerModal(true)}
+          className="btn-emerald"
+          style={{ width: '100%' }}
+        >
+          Generate AI Meal Plan & Recipes <ChefHat size={16} />
+        </button>
       </div>
 
       {/* 3 Meal Logging Action Buttons */}
@@ -293,29 +305,37 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         ))}
       </div>
 
-      {/* Logged Meal List with Edit Icons */}
+      {/* Logged Meal List with Double-Click / Tap to View Full Recipe & Ingredients */}
       <div className="glass-card">
-        <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
-          Logged Meals ({meals.length})
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--text-muted)' }}>
+            Logged Meals ({meals.length})
+          </h3>
+          <span style={{ fontSize: '0.7rem', color: 'var(--primary-cyan)' }}>
+            Tap any meal to view recipe & ingredients
+          </span>
+        </div>
 
         {meals.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-            No meals logged yet today. Tap <strong>Photo Food</strong> or <strong>Text AI</strong> above!
+            No meals logged yet today. Tap <strong>Photo Food</strong> or <strong>Generate AI Meal Plan</strong> above!
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
             {meals.map((meal) => (
               <div
                 key={meal.id}
+                onClick={() => setRecipeMealView(meal)}
                 style={{
-                  background: 'rgba(2, 6, 23, 0.5)',
+                  background: 'rgba(2, 6, 23, 0.6)',
                   border: '1px solid var(--border-card)',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   padding: '0.75rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s ease'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -323,11 +343,13 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
                     <img src={meal.photoUrl} alt={meal.name} style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Utensils size={20} color="var(--text-dim)" />
+                      <Utensils size={20} color="var(--primary-cyan)" />
                     </div>
                   )}
                   <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>{meal.name}</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      {meal.name} <BookOpen size={13} color="var(--primary-cyan)" />
+                    </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
                       <span>🔥 {meal.calories} kcal</span>
                       <span>💪 P: {meal.protein}g</span>
@@ -337,7 +359,7 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => setEditingMeal(meal)}
                     title="Edit Meal Macros"
@@ -358,7 +380,7 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         )}
       </div>
 
-      {/* Daily Supplements & Refined Vitamins (Magnesium, Zinc, Vitamin D) */}
+      {/* Daily Supplements & Refined Vitamins */}
       <div className="glass-card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-purple)', marginBottom: '0.75rem' }}>
           <Pill size={18} />
@@ -491,7 +513,7 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         </div>
       </div>
 
-      {/* MODAL 1: Single Photo Food Scanner (With Optional Description) */}
+      {/* MODAL 1: Single Photo Food Scanner */}
       {showPhotoModal && photoSelected && (
         <div className="modal-overlay" onClick={() => setShowPhotoModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
@@ -600,7 +622,84 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         </div>
       )}
 
-      {/* MODAL 3: AI Text Description Scanner */}
+      {/* MODAL 3: Detailed Meal Recipe & Ingredients Modal (Opened by Tapping Logged Meal) */}
+      {recipeMealView && (
+        <div className="modal-overlay" onClick={() => setRecipeMealView(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div>
+                <span className="badge badge-cyan">{recipeMealView.category || 'Logged Meal'}</span>
+                <h2 style={{ fontSize: '1.25rem', marginTop: '0.25rem', color: 'var(--text-main)' }}>
+                  {recipeMealView.name}
+                </h2>
+                {recipeMealView.timestamp && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🕒 Logged at {recipeMealView.timestamp}</div>
+                )}
+              </div>
+              <button onClick={() => setRecipeMealView(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Photo preview if present */}
+            {recipeMealView.photoUrl && (
+              <img src={recipeMealView.photoUrl} alt={recipeMealView.name} style={{ width: '100%', height: '180px', borderRadius: '14px', objectFit: 'cover', marginBottom: '1rem' }} />
+            )}
+
+            {/* Macros Breakdown */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.65rem', marginBottom: '1.25rem', textAlign: 'center' }}>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '0.65rem', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Calories</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary-cyan)' }}>{recipeMealView.calories} <span style={{ fontSize: '0.6rem' }}>kcal</span></div>
+              </div>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '0.65rem', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Protein</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>{recipeMealView.protein} <span style={{ fontSize: '0.6rem' }}>g</span></div>
+              </div>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '0.65rem', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Carbs</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-amber)' }}>{recipeMealView.carbs} <span style={{ fontSize: '0.6rem' }}>g</span></div>
+              </div>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '0.65rem', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Fat</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-purple)' }}>{recipeMealView.fat} <span style={{ fontSize: '0.6rem' }}>g</span></div>
+              </div>
+            </div>
+
+            {/* Notes & Recipe Instructions */}
+            {recipeMealView.notes && (
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '1rem', borderRadius: '14px', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-cyan)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <BookOpen size={16} /> Recipe & Ingredients Details:
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-line' }}>
+                  {recipeMealView.notes}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => {
+                  const m = recipeMealView;
+                  setRecipeMealView(null);
+                  setEditingMeal(m);
+                }}
+                className="btn-secondary"
+                style={{ flex: 1 }}
+              >
+                <Edit2 size={16} /> Edit Macros
+              </button>
+
+              <button onClick={() => setRecipeMealView(null)} className="btn-primary" style={{ flex: 1 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: AI Text Description Scanner */}
       {showTextModal && (
         <div className="modal-overlay" onClick={() => setShowTextModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
@@ -634,7 +733,7 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         </div>
       )}
 
-      {/* MODAL 4: AI Meal Planner */}
+      {/* MODAL 5: AI Meal Planner */}
       {showPlannerModal && (
         <MealPlannerModal
           profile={profile}
