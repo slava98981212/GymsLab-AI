@@ -477,36 +477,46 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
               )}
 
               {/* Saved Workout Objects List */}
-              {savedWorkouts.map((w, idx) => (
-                <div key={w.workoutId || idx} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-card)', borderRadius: '12px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                      🏋️ {w.workoutName || `Workout #${idx + 1}`} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({w.timestamp})</span>
+              {Array.isArray(savedWorkouts) && savedWorkouts.filter(Boolean).map((w, idx) => {
+                if (!w || typeof w !== 'object') return null;
+                const workoutTitle = w.workoutName || `Workout #${idx + 1}`;
+                const timestampStr = w.timestamp || '';
+                const durationSecs = typeof w.durationSecs === 'number' ? w.durationSecs : 0;
+                const totalVol = typeof w.totalVolume === 'number' ? w.totalVolume : 0;
+                const exCount = Array.isArray(w.exercises) ? w.exercises.length : 0;
+                const wId = w.workoutId || idx;
+
+                return (
+                  <div key={wId} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-card)', borderRadius: '12px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        🏋️ {workoutTitle} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({timestampStr})</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        ⏱️ {formatHMS(durationSecs)} | 🏋️ {totalVol}kg | {exCount} exercises
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                      ⏱️ {formatHMS(w.durationSecs)} | 🏋️ {w.totalVolume}kg | {w.exercises?.length || 0} exercises
+
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setEditingWorkoutObj(w)}
+                        className="btn-primary"
+                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                      >
+                        Edit / Review <Edit2 size={12} />
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteSavedWorkout(wId)}
+                        style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '0.25rem' }}
+                        title="Delete Workout Session"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
-
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <button
-                      onClick={() => setEditingWorkoutObj(w)}
-                      className="btn-primary"
-                      style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
-                    >
-                      Edit / Review <Edit2 size={12} />
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteSavedWorkout(w.workoutId || idx)}
-                      style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '0.25rem' }}
-                      title="Delete Workout Session"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {savedWorkouts.length === 0 && !workoutActive && workoutElapsedSecs === 0 && (
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '0.4rem' }}>
