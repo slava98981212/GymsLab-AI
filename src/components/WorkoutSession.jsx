@@ -961,6 +961,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       {/* FOCUS EXERCISE RUNNER MODAL */}
       {activeRunnerExIdx !== null && exercises[activeRunnerExIdx] && (
         <ExerciseRunnerModal
+          key={exercises[activeRunnerExIdx].exerciseId || `runner_${activeRunnerExIdx}`}
           exercise={exercises[activeRunnerExIdx]}
           pastRecord={getPreviousLogForExercise(exercises[activeRunnerExIdx].exerciseId, exercises[activeRunnerExIdx].name)}
           onSaveExerciseSets={handleSaveSetsFromRunner}
