@@ -1,22 +1,28 @@
 import React, { useState } from 'react';
-import { Settings, Key, Plane, HelpCircle, Save, X, RefreshCw, Smartphone } from 'lucide-react';
+import { Settings, Key, Plane, HelpCircle, Save, X, Utensils, ChefHat, Edit2 } from 'lucide-react';
+import MealPlannerModal from './MealPlannerModal';
 
-export default function SettingsModal({ apiKey, travelMode, onSaveSettings, onResetProfile, onOpenGuide, onClose }) {
+export default function SettingsModal({ apiKey, travelMode, targetMacros, onSaveSettings, onSaveTargetMacros, onResetProfile, onOpenGuide, onClose }) {
   const [keyInput, setKeyInput] = useState(apiKey || '');
   const [travelState, setTravelState] = useState(travelMode || false);
 
+  // Macro Target Editor state in Settings
+  const [macroGoals, setMacroGoals] = useState(targetMacros || { calories: 2400, protein: 180, carbs: 240, fat: 70 });
+  const [showPlannerModal, setShowPlannerModal] = useState(false);
+
   const handleSave = () => {
     onSaveSettings({ apiKey: keyInput, travelMode: travelState });
+    onSaveTargetMacros(macroGoals);
     onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <Settings size={24} color="var(--primary-cyan)" />
-            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>App Settings & Privacy</h2>
+            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>App Settings & Nutrition Controls</h2>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
             <X size={20} />
@@ -24,14 +30,82 @@ export default function SettingsModal({ apiKey, travelMode, onSaveSettings, onRe
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Target Macro Goals Editor in Settings */}
+          <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', borderRadius: '16px', padding: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Edit2 size={16} /> Target Macro Goals
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Calories (kcal)</label>
+                <input
+                  type="number"
+                  value={macroGoals.calories}
+                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, calories: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Protein (g)</label>
+                <input
+                  type="number"
+                  value={macroGoals.protein}
+                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, protein: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Carbs (g)</label>
+                <input
+                  type="number"
+                  value={macroGoals.carbs}
+                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, carbs: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--accent-purple)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Fat (g)</label>
+                <input
+                  type="number"
+                  value={macroGoals.fat}
+                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, fat: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* AI Meal Plan Generator Switch in Settings */}
+          <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)', borderRadius: '16px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ChefHat size={18} /> AI Meal Plan & Recipe Generator
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem', margin: 0 }}>
+                Specify meals/day, food requests, and meal times (07:00 AM - 22:00 PM). Includes mandatory Creatine (5g) & Whey Protein.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowPlannerModal(true)}
+              className="btn-emerald"
+              style={{ whiteSpace: 'nowrap', fontSize: '0.75rem', padding: '0.45rem 0.75rem' }}
+            >
+              Launch Generator
+            </button>
+          </div>
+
           {/* OpenAI API Key Card */}
           <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', borderRadius: '16px', padding: '1rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-cyan)', display: 'block', marginBottom: '0.4rem' }}>
-              OpenAI API Key (Required for GPT-4o AI Coach)
+              OpenAI API Key (Stored safely on iPhone)
             </label>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              Your key is stored strictly on your iPhone (localStorage & IndexedDB). It is never sent to third-party servers.
-            </p>
             <div style={{ position: 'relative' }}>
               <input
                 type="password"
@@ -48,14 +122,14 @@ export default function SettingsModal({ apiKey, travelMode, onSaveSettings, onRe
           {/* Travel / Vacation Mode Card */}
           <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', borderRadius: '16px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ paddingRight: '1rem' }}>
-              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Plane size={16} color="var(--accent-amber)" /> Travel / Vacation Pause Mode
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Plane size={16} color="var(--accent-amber)" /> Travel / Vacation Mode
               </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                Pauses required daily check-ins, notifications, and streak penalties while you travel.
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem', margin: 0 }}>
+                Pauses required daily check-ins while preserving historical streaks.
               </p>
             </div>
-            <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', cursor: 'pointer' }}>
+            <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={travelState}
@@ -72,9 +146,9 @@ export default function SettingsModal({ apiKey, travelMode, onSaveSettings, onRe
                 <span style={{
                   position: 'absolute',
                   content: '""',
-                  height: '20px',
-                  width: '20px',
-                  left: travelState ? '25px' : '4px',
+                  height: '18px',
+                  width: '18px',
+                  left: travelState ? '24px' : '4px',
                   bottom: '4px',
                   backgroundColor: 'white',
                   borderRadius: '50%',
@@ -93,16 +167,6 @@ export default function SettingsModal({ apiKey, travelMode, onSaveSettings, onRe
             <HelpCircle size={18} color="var(--primary-cyan)" /> How to Measure Waist & Biceps Guide
           </button>
 
-          {/* iOS App Store / PWA Install Guide */}
-          <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.2)', borderRadius: '16px', padding: '1rem' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-              <Smartphone size={16} /> Private iPhone Home Screen Setup
-            </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              To use this privately on your iPhone: Open Safari → Tap the <strong>Share Button</strong> (square with up arrow) → Tap <strong>"Add to Home Screen"</strong>. Launches full-screen like a native App Store app!
-            </p>
-          </div>
-
           <button onClick={handleSave} className="btn-primary" style={{ width: '100%' }}>
             Save Settings <Save size={16} />
           </button>
@@ -118,6 +182,16 @@ export default function SettingsModal({ apiKey, travelMode, onSaveSettings, onRe
             Reset Profile Data
           </button>
         </div>
+
+        {/* AI Meal Planner Modal from Settings */}
+        {showPlannerModal && (
+          <MealPlannerModal
+            targetMacros={macroGoals}
+            apiKey={apiKey}
+            onAddMealToLog={() => {}}
+            onClose={() => setShowPlannerModal(false)}
+          />
+        )}
       </div>
     </div>
   );

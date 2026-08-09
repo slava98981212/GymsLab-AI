@@ -54,6 +54,8 @@ export default function App() {
 
   // Today string YYYY-MM-DD
   const todayStr = new Date().toISOString().slice(0, 10);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+
   const [dailyLog, setDailyLog] = useState({
     date: todayStr,
     weight: null,
@@ -71,7 +73,7 @@ export default function App() {
     waterLiters: 0,
     steps: 0,
     supplements: { creatine: false, protein: false },
-    vitamins: { vitaminD3: false, omega3: false, multivitamin: false, zma: false, vitaminC: false },
+    vitamins: { magnesium: false, zinc: false, vitaminD: false },
     totalMacros: { calories: 0, protein: 0, carbs: 0, fat: 0 },
     aiDailySummary: null
   });
@@ -96,9 +98,12 @@ export default function App() {
     loadInitialAppData();
   }, []);
 
+  useEffect(() => {
+    loadLogForDate(selectedDate);
+  }, [selectedDate]);
+
   const loadInitialAppData = async () => {
     try {
-      // 1. Fetch Profile
       const prof = await getProfile();
       if (!prof) {
         setShowOnboarding(true);
@@ -106,7 +111,6 @@ export default function App() {
         setProfile(prof);
       }
 
-      // 2. Fetch Settings
       const savedKey = await getSetting('openai_api_key');
       const keyToUse = savedKey || DEFAULT_OPENAI_KEY;
       setApiKey(keyToUse);
@@ -114,17 +118,6 @@ export default function App() {
       const savedTravel = await getSetting('travel_mode');
       if (savedTravel !== null) setTravelMode(savedTravel);
 
-      // 3. Fetch Today's Daily Log
-      const todayData = await getDailyLog(todayStr);
-      if (todayData) {
-        setDailyLog((prev) => ({ ...prev, ...todayData }));
-      } else {
-        if (prof && !savedTravel) {
-          setShowMorningWeightModal(true);
-        }
-      }
-
-      // 4. Fetch History for OpenAI Memory Context & Exercise Memory
       const allDaily = await getAllDailyLogs();
       setAllDailyLogsList(allDaily);
 
@@ -164,6 +157,39 @@ export default function App() {
     }
   };
 
+  const loadLogForDate = async (dateStr) => {
+    const logData = await getDailyLog(dateStr);
+    if (logData) {
+      setDailyLog(logData);
+    } else {
+      setDailyLog({
+        date: dateStr,
+        weight: null,
+        meals: [],
+        foodPhotos: [],
+        exercises: [],
+        videos: [],
+        warmupCompleted: false,
+        cooldownCompleted: false,
+        warmupChecks: {},
+        cooldownChecks: {},
+        mwfChecks: {},
+        calisthenicsCompleted: false,
+        saunaCompleted: false,
+        waterLiters: 0,
+        steps: 0,
+        supplements: { creatine: false, protein: false },
+        vitamins: { magnesium: false, zinc: false, vitaminD: false },
+        totalMacros: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+        aiDailySummary: null
+      });
+
+      if (dateStr === todayStr && profile && !travelMode) {
+        setShowMorningWeightModal(true);
+      }
+    }
+  };
+
   const handleSaveProfile = async (profData) => {
     await saveProfile(profData);
     setProfile(profData);
@@ -175,9 +201,9 @@ export default function App() {
   };
 
   const handleUpdateDailyLog = async (fieldsToUpdate) => {
-    const updated = { ...dailyLog, ...fieldsToUpdate, date: todayStr };
+    const updated = { ...dailyLog, ...fieldsToUpdate, date: selectedDate };
     setDailyLog(updated);
-    await saveDailyLog(todayStr, updated);
+    await saveDailyLog(selectedDate, updated);
   };
 
   const handleSaveMorningWeight = async (w) => {
@@ -224,8 +250,10 @@ export default function App() {
 
   return (
     <div className="app-container" style={{ minHeight: '100vh', background: 'var(--bg-dark)' }}>
-      {/* Top Header */}
+      {/* Top Header with Historical Date Navigator */}
       <Header
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
         onOpenSettings={() => setShowSettingsModal(true)}
         travelMode={travelMode}
         onToggleTravelMode={handleToggleTravelMode}
@@ -277,7 +305,7 @@ export default function App() {
                   onClick={() => setShowGuideModal(true)}
                   style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-card)', color: 'var(--primary-cyan)', padding: '0.4rem 0.65rem', borderRadius: '10px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                 >
-                  <Ruler size={14} /> Measurement Guide
+                  <Ruler size={14} /> Guide
                 </button>
               </div>
 
@@ -299,7 +327,7 @@ export default function App() {
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
                     <Utensils size={12} color="var(--accent-emerald)" /> Calories
                   </div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)', marginTop: '0.2rem' }}>
                     {dailyLog.totalMacros?.calories || 0} <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>/{targetMacros.calories}</span>
                   </div>
                 </div>
@@ -308,7 +336,7 @@ export default function App() {
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
                     <Dumbbell size={12} color="var(--accent-amber)" /> Workout
                   </div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
                     {dailyLog.exercises?.length || 0} <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>sets</span>
                   </div>
                 </div>
@@ -482,7 +510,9 @@ export default function App() {
         <SettingsModal
           apiKey={apiKey}
           travelMode={travelMode}
+          targetMacros={targetMacros}
           onSaveSettings={handleSaveSettings}
+          onSaveTargetMacros={handleSaveTargetMacros}
           onResetProfile={handleResetProfile}
           onOpenGuide={() => setShowGuideModal(true)}
           onClose={() => setShowSettingsModal(false)}

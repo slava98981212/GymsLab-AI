@@ -157,24 +157,17 @@ Target Daily Macros:
 - Fat: ${targetMacros.fat}g
 User Cravings / Food Requests Today: ${cravings || 'No specific cravings, make clean delicious high-protein meals'}
 
-Requirements:
-Create ${mealsPerDay} meals that sum up approximately to the target daily macros.
-For each meal, provide:
-1. "mealName": Name of the dish
-2. "category": "Breakfast" | "Lunch" | "Dinner" | "Post-Workout" | "Snack"
-3. "calories": number
-4. "protein": number (grams)
-5. "carbs": number (grams)
-6. "fat": number (grams)
-7. "ingredients": array of strings with exact quantities (e.g. ["200g Chicken Breast", "150g Jasmine Rice", "1 tbsp Olive Oil"])
-8. "instructions": step-by-step concise cooking instructions
+MANDATORY RULES:
+1. ALWAYS INCLUDE "Creatine Monohydrate (5g)" and "Whey Protein Shake" as required items in the daily plan!
+2. ASSIGN APPROXIMATE MEAL TIMES for each meal. Earliest meal MUST start at 07:00 AM (07:00) and latest meal MUST be at or before 22:00 PM (22:00). Evenly space the ${mealsPerDay} meals between 07:00 and 22:00.
 
 Return JSON:
 {
-  "summary": "Brief 2-sentence breakdown of today's meal plan strategy",
+  "summary": "Brief 2-sentence breakdown of today's meal plan strategy including Creatine & Whey Protein",
   "meals": [
     {
       "mealName": string,
+      "approxTime": "e.g. 07:00 AM" | "12:30 PM" | "17:00 PM" | "21:30 PM",
       "category": string,
       "calories": number,
       "protein": number,
