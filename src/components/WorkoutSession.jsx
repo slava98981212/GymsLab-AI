@@ -42,7 +42,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   const [selectedPresetId, setSelectedPresetId] = useState(PRESET_EXERCISES[0].id);
 
   // Exercise Runner Modal Focus Mode State
-  const [activeRunnerExIdx, setActiveRunnerExIdx] = useState(null);
+  const [activeRunnerExercise, setActiveRunnerExercise] = useState(null);
 
   // Rest Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -59,7 +59,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       interval = setInterval(() => {
         setWorkoutElapsedSecs((prev) => {
           const next = prev + 1;
-          if (next % 5 === 0 && activeRunnerExIdx === null) {
+          if (next % 5 === 0 && !activeRunnerExercise) {
             onUpdateLog({ workoutDurationSecs: next, workoutActive: true });
           }
           return next;
@@ -67,7 +67,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [workoutActive, activeRunnerExIdx]);
+  }, [workoutActive, activeRunnerExercise]);
 
   // Rest Timer Countdown Effect
   useEffect(() => {
@@ -238,25 +238,25 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
   const handleAddProgramExercise = (progEx) => {
     if (!workoutActive) setWorkoutActive(true);
-    const existingIdx = exercises.findIndex((e) => e.exerciseId === progEx.id);
+    const existing = exercises.find((e) => e.exerciseId === progEx.id || e.name === progEx.name);
     let updatedExercises = [...exercises];
 
-    const targetSetsCount = progEx.targetSets || 4;
-    const initialSets = [];
+    if (!existing) {
+      const targetSetsCount = progEx.targetSets || 4;
+      const initialSets = [];
 
-    const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
-    let defaultWeight = 60;
-    if (pastRecord) {
-      const matchW = pastRecord.match(/(\d+)\s*kg/);
-      if (matchW) defaultWeight = parseFloat(matchW[1]);
-    }
+      const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
+      let defaultWeight = 60;
+      if (pastRecord) {
+        const matchW = pastRecord.match(/(\d+)\s*kg/);
+        if (matchW) defaultWeight = parseFloat(matchW[1]);
+      }
 
-    for (let i = 1; i <= targetSetsCount; i++) {
-      initialSets.push({ setNum: i, weight: defaultWeight, reps: progEx.targetReps || 10, completed: false });
-    }
+      for (let i = 1; i <= targetSetsCount; i++) {
+        initialSets.push({ setNum: i, weight: defaultWeight, reps: progEx.targetReps || 10, completed: false });
+      }
 
-    if (existingIdx < 0) {
-      updatedExercises.push({
+      const newEx = {
         exerciseId: progEx.id,
         name: progEx.name,
         isSuperset: progEx.isSuperset || false,
@@ -265,11 +265,13 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         note: progEx.note || '',
         startedAt: Date.now(),
         sets: initialSets
-      });
+      };
+
+      updatedExercises.push(newEx);
       onUpdateLog({ exercises: updatedExercises, workoutActive: true });
-      setActiveRunnerExIdx(updatedExercises.length - 1);
+      setActiveRunnerExercise(newEx);
     } else {
-      setActiveRunnerExIdx(existingIdx);
+      setActiveRunnerExercise(existing);
     }
   };
 
@@ -279,40 +281,52 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     if (!exObj) return;
 
     let updatedExercises = [...exercises];
-    const existingIdx = exercises.findIndex((e) => e.exerciseId === selectedPresetId);
+    const existing = exercises.find((e) => e.exerciseId === selectedPresetId);
 
-    const newSet = {
-      setNum: existingIdx >= 0 ? updatedExercises[existingIdx].sets.length + 1 : 1,
-      weight: 60,
-      reps: 10,
-      completed: false
-    };
-
-    if (existingIdx >= 0) {
-      updatedExercises[existingIdx].sets.push(newSet);
-      onUpdateLog({ exercises: updatedExercises, workoutActive: true });
-      setActiveRunnerExIdx(existingIdx);
+    if (existing) {
+      setActiveRunnerExercise(existing);
     } else {
-      updatedExercises.push({
+      const newEx = {
         exerciseId: exObj.id,
         name: exObj.name,
         restSec: 120,
         startedAt: Date.now(),
-        sets: [newSet]
-      });
+        sets: [
+          { setNum: 1, weight: 60, reps: 10, completed: false },
+          { setNum: 2, weight: 60, reps: 10, completed: false },
+          { setNum: 3, weight: 60, reps: 10, completed: false },
+          { setNum: 4, weight: 60, reps: 10, completed: false }
+        ]
+      };
+
+      updatedExercises.push(newEx);
       onUpdateLog({ exercises: updatedExercises, workoutActive: true });
-      setActiveRunnerExIdx(updatedExercises.length - 1);
+      setActiveRunnerExercise(newEx);
     }
   };
 
   const handleSaveSetsFromRunner = (updatedSets, elapsedSecs, startedAt) => {
-    if (activeRunnerExIdx === null) return;
+    if (!activeRunnerExercise) return;
     const updatedExercises = JSON.parse(JSON.stringify(exercises));
-    updatedExercises[activeRunnerExIdx].sets = updatedSets;
-    updatedExercises[activeRunnerExIdx].durationSecs = elapsedSecs;
-    updatedExercises[activeRunnerExIdx].startedAt = startedAt;
-    updatedExercises[activeRunnerExIdx].completed = true;
+    const targetIdx = updatedExercises.findIndex((e) => e.exerciseId === activeRunnerExercise.exerciseId || e.name === activeRunnerExercise.name);
+
+    if (targetIdx >= 0) {
+      updatedExercises[targetIdx].sets = updatedSets;
+      updatedExercises[targetIdx].durationSecs = elapsedSecs;
+      updatedExercises[targetIdx].startedAt = startedAt;
+      updatedExercises[targetIdx].completed = true;
+    } else {
+      updatedExercises.push({
+        ...activeRunnerExercise,
+        sets: updatedSets,
+        durationSecs: elapsedSecs,
+        startedAt,
+        completed: true
+      });
+    }
+
     onUpdateLog({ exercises: updatedExercises });
+    setActiveRunnerExercise(null);
   };
 
   const handleUpdateSet = (exIdx, setIdx, field, val) => {
@@ -888,7 +902,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <button
-                            onClick={() => setActiveRunnerExIdx(exIdx)}
+                            onClick={() => setActiveRunnerExercise(ex)}
                             className={ex.completed ? 'btn-emerald' : 'btn-primary'}
                             style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
                           >
@@ -1025,13 +1039,13 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       )}
 
       {/* FOCUS EXERCISE RUNNER MODAL */}
-      {activeRunnerExIdx !== null && exercises[activeRunnerExIdx] && (
+      {activeRunnerExercise && (
         <ExerciseRunnerModal
-          key={exercises[activeRunnerExIdx].exerciseId || `runner_${activeRunnerExIdx}`}
-          exercise={exercises[activeRunnerExIdx]}
-          pastRecord={getPreviousLogForExercise(exercises[activeRunnerExIdx].exerciseId, exercises[activeRunnerExIdx].name)}
+          key={activeRunnerExercise.exerciseId || activeRunnerExercise.name}
+          exercise={activeRunnerExercise}
+          pastRecord={getPreviousLogForExercise(activeRunnerExercise.exerciseId, activeRunnerExercise.name)}
           onSaveExerciseSets={handleSaveSetsFromRunner}
-          onClose={() => setActiveRunnerExIdx(null)}
+          onClose={() => setActiveRunnerExercise(null)}
         />
       )}
 
