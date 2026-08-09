@@ -215,7 +215,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   const handleToggleWarmupCheck = (id, restSec) => {
     const next = { ...warmupChecks, [id]: !warmupChecks[id] };
     setWarmupChecks(next);
-    const allDone = currentDayProgram.warmup.every((w) => next[w.id]);
+    const warmupList = currentDayProgram?.warmup || [];
+    const allDone = warmupList.length > 0 && warmupList.every((w) => next[w.id]);
     onUpdateLog({ warmupChecks: next, warmupCompleted: allDone });
 
     if (!warmupChecks[id] && restSec) {
@@ -232,7 +233,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   const handleToggleCooldownCheck = (id) => {
     const next = { ...cooldownChecks, [id]: !cooldownChecks[id] };
     setCooldownChecks(next);
-    const allDone = currentDayProgram.cooldown.every((c) => next[c.id]);
+    const cooldownList = currentDayProgram?.cooldown || [];
+    const allDone = cooldownList.length > 0 && cooldownList.every((c) => next[c.id]);
     onUpdateLog({ cooldownChecks: next, cooldownCompleted: allDone });
   };
 
@@ -708,7 +710,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {currentDayProgram.warmup.map((item) => {
+                {(currentDayProgram?.warmup || []).map((item) => {
                   const isChecked = warmupChecks[item.id] || false;
                   return (
                     <div
@@ -1023,7 +1025,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {currentDayProgram.cooldown.map((item) => {
+                {(currentDayProgram?.cooldown || []).map((item) => {
                   const isChecked = cooldownChecks[item.id] || false;
                   return (
                     <div
