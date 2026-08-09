@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateCcw, HeartPulse, Sparkles, Calendar, Zap, Layers, History, FlameKindling, Check, Trash2, Edit2, X, Award, AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { WEEKLY_WORKOUT_SPLIT, MON_WED_FRI_ROUTINE, PRESET_EXERCISES } from '../utils/constants';
-import ExerciseRunnerModal from './ExerciseRunnerModal';
+import {
+  triggerGlobalRestTimer,
+  getGlobalRestState,
+  pauseGlobalRestTimer,
+  resumeGlobalRestTimer,
+  clearGlobalRestTimer,
+  dismissRestExpiredAlert,
+  startGlobalWorkoutClock,
+  stopGlobalWorkoutClock,
+  getGlobalWorkoutDurationSecs
+} from '../services/timerEngine';
 
 export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, onSelectDate }) {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -52,7 +61,6 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   // Overall Workout Active State & Timer
   const [workoutActive, setWorkoutActive] = useState(dailyLog?.workoutActive || false);
   const [workoutElapsedSecs, setWorkoutElapsedSecs] = useState(dailyLog?.workoutDurationSecs || 0);
-  const [workoutStartMs, setWorkoutStartMs] = useState(dailyLog?.workoutStartMs || null);
 
   // Workout Summary Modal State
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -81,115 +89,62 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   // Exercise Runner Modal Focus Mode State
   const [activeRunnerExercise, setActiveRunnerExercise] = useState(null);
 
-  // Rest Timer State & Target End Timestamp
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [timerActive, setTimerActive] = useState(false);
-  const [restTimerExpired, setRestTimerExpired] = useState(false);
-  const [restTargetEndMs, setRestTargetEndMs] = useState(null);
+  // Global Singleton Rest Timer State
+  const [restState, setRestState] = useState(() => getGlobalRestState());
 
   // Saved Past Workouts for Today
   const savedWorkouts = dailyLog?.savedWorkouts || [];
 
-  // Timestamp-based Overall Workout Duration Clock Effect (Resilient to app switching & backgrounding)
+  // Single-Source-of-Truth Timer Effect
   useEffect(() => {
-    let interval = null;
-    if (workoutActive) {
-      const updateDuration = () => {
-        let startMs = workoutStartMs;
-        if (!startMs) {
-          startMs = Date.now() - (workoutElapsedSecs * 1000);
-          setWorkoutStartMs(startMs);
-        }
-        const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+    const updateTick = () => {
+      // 1. Sync global rest timer state
+      const nextRest = getGlobalRestState();
+      setRestState(nextRest);
+
+      // 2. Sync overall workout duration
+      if (workoutActive) {
+        const elapsed = getGlobalWorkoutDurationSecs(dailyLog?.workoutStartMs, workoutElapsedSecs, true);
         setWorkoutElapsedSecs(elapsed);
         if (elapsed % 5 === 0 && !activeRunnerExercise) {
-          onUpdateLog({ workoutDurationSecs: elapsed, workoutActive: true, workoutStartMs: startMs });
+          onUpdateLog({ workoutDurationSecs: elapsed, workoutActive: true, workoutStartMs: dailyLog?.workoutStartMs });
         }
-      };
+      }
+    };
 
-      updateDuration();
-      interval = setInterval(updateDuration, 1000);
+    updateTick();
+    const interval = setInterval(updateTick, 1000);
 
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          updateDuration();
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        updateTick();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-      return () => {
-        clearInterval(interval);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
-    }
-  }, [workoutActive, workoutStartMs, activeRunnerExercise]);
-
-  // Timestamp-based Rest Timer Countdown Effect (Resilient to app switching & backgrounding)
-  useEffect(() => {
-    let interval = null;
-    if (timerActive && restTargetEndMs) {
-      const checkRestTimer = () => {
-        const now = Date.now();
-        const diffSecs = Math.ceil((restTargetEndMs - now) / 1000);
-        if (diffSecs <= 0) {
-          setTimerSeconds(0);
-          setTimerActive(false);
-          setRestTargetEndMs(null);
-          setRestTimerExpired(true);
-          try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            gain.gain.setValueAtTime(0.4, ctx.currentTime);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.6);
-          } catch (e) {
-            console.log('Audio chime error', e);
-          }
-        } else {
-          setTimerSeconds(diffSecs);
-        }
-      };
-
-      checkRestTimer();
-      interval = setInterval(checkRestTimer, 1000);
-
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          checkRestTimer();
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      return () => {
-        clearInterval(interval);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
-    }
-  }, [timerActive, restTargetEndMs]);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [workoutActive, dailyLog?.workoutStartMs, workoutElapsedSecs, activeRunnerExercise]);
 
   const handleStartWorkout = () => {
     setWorkoutActive(true);
     const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
-    const startMs = Date.now() - (existingSecs * 1000);
-    setWorkoutStartMs(startMs);
+    const startMs = startGlobalWorkoutClock(null, existingSecs);
     setWorkoutElapsedSecs(existingSecs);
     onUpdateLog({ workoutActive: true, workoutDurationSecs: existingSecs, workoutStartMs: startMs });
   };
 
   const handlePauseWorkout = () => {
     setWorkoutActive(false);
+    stopGlobalWorkoutClock();
     onUpdateLog({ workoutActive: false, workoutDurationSecs: workoutElapsedSecs, workoutStartMs: null });
   };
 
   const handleResumeWorkout = () => {
     setWorkoutActive(true);
-    const startMs = Date.now() - (workoutElapsedSecs * 1000);
-    setWorkoutStartMs(startMs);
+    const startMs = startGlobalWorkoutClock(null, workoutElapsedSecs);
     onUpdateLog({ workoutActive: true, workoutDurationSecs: workoutElapsedSecs, workoutStartMs: startMs });
   };
 
@@ -256,22 +211,27 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
   const startRestTimer = (secs) => {
     if (!secs || secs <= 0) return;
-    const targetEnd = Date.now() + secs * 1000;
-    setRestTargetEndMs(targetEnd);
-    setTimerSeconds(secs);
-    setTimerActive(true);
-    setRestTimerExpired(false);
+    triggerGlobalRestTimer(secs);
+    setRestState(getGlobalRestState());
   };
 
   const handleTogglePauseRestTimer = () => {
-    if (timerActive) {
-      setTimerActive(false);
-      setRestTargetEndMs(null);
-    } else if (timerSeconds > 0) {
-      const targetEnd = Date.now() + timerSeconds * 1000;
-      setRestTargetEndMs(targetEnd);
-      setTimerActive(true);
+    if (restState.active) {
+      pauseGlobalRestTimer();
+    } else if (restState.seconds > 0) {
+      resumeGlobalRestTimer();
     }
+    setRestState(getGlobalRestState());
+  };
+
+  const handleResetRestTimer = () => {
+    clearGlobalRestTimer();
+    setRestState(getGlobalRestState());
+  };
+
+  const handleDismissRestExpired = () => {
+    dismissRestExpiredAlert();
+    setRestState(getGlobalRestState());
   };
 
   const getPreviousLogForExercise = (exerciseId, exerciseName) => {
@@ -672,9 +632,9 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           </div>
 
           {/* Rest Timer Banner: Active Countdown OR Red Expired Alert with OK Button */}
-          {(timerSeconds > 0 || restTimerExpired) && (
+          {(restState.active || restState.seconds > 0 || restState.expired) && (
             <div style={{
-              background: restTimerExpired
+              background: restState.expired
                 ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.98), rgba(185, 28, 28, 0.98))'
                 : 'linear-gradient(135deg, rgba(6, 182, 212, 0.95), rgba(59, 130, 246, 0.95))',
               padding: '0.85rem 1.25rem',
@@ -683,26 +643,26 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
               alignItems: 'center',
               justifyContent: 'space-between',
               color: '#ffffff',
-              boxShadow: restTimerExpired ? '0 0 25px rgba(239, 68, 68, 0.6)' : '0 8px 25px var(--primary-cyan-glow)',
+              boxShadow: restState.expired ? '0 0 25px rgba(239, 68, 68, 0.6)' : '0 8px 25px var(--primary-cyan-glow)',
               position: 'sticky',
               top: '70px',
               zIndex: 840
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Timer size={24} className={restTimerExpired ? '' : 'spin'} />
+                <Timer size={24} className={restState.expired ? '' : 'spin'} />
                 <div>
                   <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9, fontWeight: 700 }}>
-                    {restTimerExpired ? '⏰ REST FINISHED! GET TO WORK' : 'Rest Countdown'}
+                    {restState.expired ? '⏰ REST FINISHED! GET TO WORK' : 'Rest Countdown'}
                   </div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>
-                    {restTimerExpired ? '00:00' : `${Math.floor(timerSeconds / 60)}:${String(timerSeconds % 60).padStart(2, '0')}`}
+                    {restState.expired ? '00:00' : `${Math.floor(restState.seconds / 60)}:${String(restState.seconds % 60).padStart(2, '0')}`}
                   </div>
                 </div>
               </div>
 
-              {restTimerExpired ? (
+              {restState.expired ? (
                 <button
-                  onClick={() => setRestTimerExpired(false)}
+                  onClick={handleDismissRestExpired}
                   style={{
                     background: '#ffffff',
                     border: 'none',
@@ -723,10 +683,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                     onClick={handleTogglePauseRestTimer}
                     style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: '#fff', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
                   >
-                    {timerActive ? <Pause size={16} /> : <Play size={16} />}
+                    {restState.active ? <Pause size={16} /> : <Play size={16} />}
                   </button>
                   <button
-                    onClick={() => { setTimerSeconds(0); setTimerActive(false); }}
+                    onClick={handleResetRestTimer}
                     style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: '#fff', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
                   >
                     <RotateCcw size={16} />

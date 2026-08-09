@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, CheckSquare, Square, Timer, Check, X, History, Dumbbell, Award, ArrowRight, CheckCircle2, Layers } from 'lucide-react';
+import { triggerGlobalRestTimer, getGlobalRestState, dismissRestExpiredAlert } from '../services/timerEngine';
 
 export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerciseSets, onStartRestTimer, onClose }) {
   const isSuperset = exercise.isSuperset || (exercise.subExercises && exercise.subExercises.length > 0);
@@ -25,34 +26,33 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
   );
 
   const isCompleted = exercise.completed || false;
-  const [startedAt] = useState(exercise.startedAt || Date.now());
+  const [focusStartMs] = useState(() => Date.now());
 
   const [elapsedSecs, setElapsedSecs] = useState(() => {
     if (isCompleted) {
       return exercise.durationSecs || 0;
     }
-    return Math.floor((Date.now() - startedAt) / 1000);
+    return 0;
   });
 
-  // Rest Timer State & Finished Alert
+  // Singleton Rest Timer State
+  const [restState, setRestState] = useState(() => getGlobalRestState());
   const restDurationSec = exercise.restSec || 120;
-  const [restSeconds, setRestSeconds] = useState(0);
-  const [restActive, setRestActive] = useState(false);
-  const [restExpired, setRestExpired] = useState(false);
-  const [restTargetEndMs, setRestTargetEndMs] = useState(null);
 
-  // Exercise Running Duration Clock (Resilient to app switching)
+  // Unified Exercise Focus Timer Effect
   useEffect(() => {
     if (isCompleted) return;
-    const updateElapsed = () => {
-      setElapsedSecs(Math.floor((Date.now() - startedAt) / 1000));
+    const updateTick = () => {
+      setElapsedSecs(Math.max(0, Math.floor((Date.now() - focusStartMs) / 1000)));
+      setRestState(getGlobalRestState());
     };
-    updateElapsed();
-    const interval = setInterval(updateElapsed, 1000);
+
+    updateTick();
+    const interval = setInterval(updateTick, 1000);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        updateElapsed();
+        updateTick();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -61,63 +61,12 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [startedAt, isCompleted]);
-
-  // Rest Countdown Timer (Resilient to app switching & backgrounding)
-  useEffect(() => {
-    let interval = null;
-    if (restActive && restTargetEndMs) {
-      const checkRest = () => {
-        const now = Date.now();
-        const diffSecs = Math.ceil((restTargetEndMs - now) / 1000);
-        if (diffSecs <= 0) {
-          setRestSeconds(0);
-          setRestActive(false);
-          setRestTargetEndMs(null);
-          setRestExpired(true);
-          try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            gain.gain.setValueAtTime(0.4, ctx.currentTime);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.6);
-          } catch (e) {
-            console.log('Audio chime error', e);
-          }
-        } else {
-          setRestSeconds(diffSecs);
-        }
-      };
-
-      checkRest();
-      interval = setInterval(checkRest, 1000);
-
-      const handleVisibility = () => {
-        if (document.visibilityState === 'visible') {
-          checkRest();
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibility);
-
-      return () => {
-        clearInterval(interval);
-        document.removeEventListener('visibilitychange', handleVisibility);
-      };
-    }
-  }, [restActive, restTargetEndMs]);
+  }, [focusStartMs, isCompleted]);
 
   const startRestTimer = () => {
     if (isCompleted) return;
-    const targetEnd = Date.now() + restDurationSec * 1000;
-    setRestTargetEndMs(targetEnd);
-    setRestExpired(false);
-    setRestSeconds(restDurationSec);
-    setRestActive(true);
+    triggerGlobalRestTimer(restDurationSec);
+    setRestState(getGlobalRestState());
 
     if (typeof onStartRestTimer === 'function') {
       onStartRestTimer(restDurationSec);
@@ -236,25 +185,25 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
 
           {!isCompleted && (
             <div style={{
-              background: restExpired
+              background: restState.expired
                 ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(185, 28, 28, 0.95))'
-                : restActive
+                : restState.active
                 ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))'
                 : 'rgba(2, 6, 23, 0.6)',
-              border: restExpired ? '2px solid #ef4444' : restActive ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
+              border: restState.expired ? '2px solid #ef4444' : restState.active ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
               padding: '0.85rem',
               borderRadius: '16px',
               textAlign: 'center',
-              boxShadow: restExpired ? '0 0 20px rgba(239, 68, 68, 0.5)' : 'none'
+              boxShadow: restState.expired ? '0 0 20px rgba(239, 68, 68, 0.5)' : 'none'
             }}>
-              <div style={{ fontSize: '0.7rem', color: restExpired ? '#ffffff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', fontWeight: restExpired ? 700 : 400 }}>
-                <Timer size={12} color={restExpired ? '#ffffff' : 'var(--accent-amber)'} />
-                {restExpired ? '⏰ REST FINISHED!' : `Rest Timer (${restDurationSec}s)`}
+              <div style={{ fontSize: '0.7rem', color: restState.expired ? '#ffffff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', fontWeight: restState.expired ? 700 : 400 }}>
+                <Timer size={12} color={restState.expired ? '#ffffff' : 'var(--accent-amber)'} />
+                {restState.expired ? '⏰ REST FINISHED!' : `Rest Timer (${restDurationSec}s)`}
               </div>
 
-              {restExpired ? (
+              {restState.expired ? (
                 <button
-                  onClick={() => setRestExpired(false)}
+                  onClick={() => { dismissRestExpiredAlert(); setRestState(getGlobalRestState()); }}
                   style={{
                     marginTop: '0.35rem',
                     background: '#ffffff',
@@ -270,8 +219,8 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
                   OK
                 </button>
               ) : (
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: restActive ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  {restSeconds > 0 ? formatMinSec(restSeconds) : 'Ready'}
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: restState.active ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  {restState.seconds > 0 ? formatMinSec(restState.seconds) : 'Ready'}
                 </div>
               )}
             </div>
