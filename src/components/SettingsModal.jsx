@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Settings, Key, Plane, HelpCircle, Save, X, Utensils, ChefHat, Edit2 } from 'lucide-react';
 import MealPlannerModal from './MealPlannerModal';
 
-export default function SettingsModal({ apiKey, travelMode, targetMacros, onSaveSettings, onSaveTargetMacros, onResetProfile, onOpenGuide, onClose }) {
+export default function SettingsModal({ profile, apiKey, travelMode, targetMacros, onSaveSettings, onSaveTargetMacros, onResetProfile, onOpenGuide, onClose }) {
   const [keyInput, setKeyInput] = useState(apiKey || '');
   const [travelState, setTravelState] = useState(travelMode || false);
 
@@ -210,6 +210,7 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
         {/* AI Meal Planner Modal from Settings */}
         {showPlannerModal && (
           <MealPlannerModal
+            profile={profile}
             targetMacros={{
               calories: Number(macroGoals.calories) || 2400,
               protein: Number(macroGoals.protein) || 180,

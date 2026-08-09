@@ -3,7 +3,7 @@ import { Camera, Sparkles, Plus, Trash2, Utensils, Edit2, Check, FileText, X, Dr
 import { analyzeFoodPhoto, analyzeFoodText } from '../services/openai';
 import MealPlannerModal from './MealPlannerModal';
 
-export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpdateLog, onSaveTargetMacros }) {
+export default function NutritionTracker({ profile, dailyLog, targetMacros, apiKey, onUpdateLog, onSaveTargetMacros }) {
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [analyzingText, setAnalyzingText] = useState(false);
 
@@ -637,6 +637,7 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
       {/* MODAL 4: AI Meal Planner */}
       {showPlannerModal && (
         <MealPlannerModal
+          profile={profile}
           targetMacros={targetMacros}
           apiKey={apiKey}
           onAddMealToLog={(mealObj) => {

@@ -144,44 +144,53 @@ Return JSON:
 /**
  * AI Custom Daily Meal Plan & Cooking Recipe Generator
  */
-export async function generateMealPlan({ mealsPerDay, cravings, targetMacros }, apiKey) {
-  const messages = [
-    { role: 'system', content: 'You are an elite sports chef & nutritionist AI generating detailed meal plans in JSON.' },
-    {
-      role: 'user',
-      content: `Generate a custom ${mealsPerDay}-meal daily meal plan for an athlete.
-Target Daily Macros:
-- Calories: ${targetMacros.calories} kcal
-- Protein: ${targetMacros.protein}g
-- Carbs: ${targetMacros.carbs}g
-- Fat: ${targetMacros.fat}g
-User Cravings / Food Requests Today: ${cravings || 'No specific cravings, make clean delicious high-protein meals'}
+export async function generateMealPlan({ mealsPerDay, cravings, targetMacros, profile, chatHistory }, apiKey) {
+  const systemPrompt = `You are a Master Sports Nutritionist & Elite Chef AI designing a custom daily meal plan for an athlete.
 
-MANDATORY RULES:
-1. ALWAYS INCLUDE "Creatine Monohydrate (5g)" and "Whey Protein Shake" as required items in the daily plan!
-2. ASSIGN APPROXIMATE MEAL TIMES for each meal. Earliest meal MUST start at 07:00 AM (07:00) and latest meal MUST be at or before 22:00 PM (22:00). Evenly space the ${mealsPerDay} meals between 07:00 and 22:00.
+ATHLETE CONTEXT & STATS:
+- Goal: ${profile?.goalType || 'Body Recomposition'}
+- Current Weight: ${profile?.weight || 80} kg | Target Weight: ${profile?.targetWeight || 78} kg
+- Height: ${profile?.height || 180} cm | Waist: ${profile?.waist || 85} cm
+- Exercise Frequency: 5-6 Days per Week (Intense Resistance Training & Calisthenics)
+- Daily Macro Goals: ${targetMacros.calories} kcal (${targetMacros.protein}g Protein, ${targetMacros.carbs}g Carbs, ${targetMacros.fat}g Fat)
 
-Return JSON:
+CRITICAL NUTRITIONIST RULES:
+1. USER INPUT ARE ONLY "WISHES/PREFERENCES". You are the Master Nutritionist who decides the optimal balance of whole foods, fiber, and micros.
+2. DO NOT REPEAT THE SAME DISH! If the user requests a food (e.g. "salmon" or "eggs"), integrate it into 1 optimal meal. DO NOT generate 6 salmon poke bowls or repeat dishes across meals. Provide diverse, delicious, high-protein recipes.
+3. MANDATORY ITEMS: ALWAYS include Creatine Monohydrate (5g) and a Whey Protein Shake in the daily schedule!
+4. MEAL TIMING: Assign realistic approximate meal times between 07:00 AM and 22:00 PM (10:00 PM) for the ${mealsPerDay} meals.
+
+Return JSON format:
 {
-  "summary": "Brief 2-sentence breakdown of today's meal plan strategy including Creatine & Whey Protein",
+  "summary": "Brief 2-sentence nutritionist rationale explaining why this plan is optimal for the user's goals",
   "meals": [
     {
-      "mealName": string,
-      "approxTime": "e.g. 07:00 AM" | "12:30 PM" | "17:00 PM" | "21:30 PM",
-      "category": string,
+      "mealName": "Name of dish",
+      "approxTime": "e.g. 07:00 AM",
+      "category": "Breakfast | Lunch | Dinner | Post-Workout | Snack",
       "calories": number,
       "protein": number,
       "carbs": number,
       "fat": number,
-      "ingredients": string[],
-      "instructions": string
+      "ingredients": ["ingredient with weight/quantity"],
+      "instructions": "Concise cooking instructions"
     }
   ]
-}`
-    }
-  ];
+}`;
 
-  return callOpenAI({ apiKey, messages, responseFormat: 'json_object', model: 'gpt-4o' });
+  const apiMessages = [{ role: 'system', content: systemPrompt }];
+
+  if (chatHistory && chatHistory.length > 0) {
+    chatHistory.forEach((msg) => {
+      if (msg.role === 'user') apiMessages.push({ role: 'user', content: msg.content });
+      else if (msg.mealPlan) apiMessages.push({ role: 'assistant', content: JSON.stringify(msg.mealPlan) });
+    });
+  }
+
+  const userMessage = cravings?.trim() || `Generate a custom ${mealsPerDay}-meal daily plan for today.`;
+  apiMessages.push({ role: 'user', content: userMessage });
+
+  return callOpenAI({ apiKey, messages: apiMessages, responseFormat: 'json_object', model: 'gpt-4o' });
 }
 
 /**

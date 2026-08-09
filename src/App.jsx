@@ -420,6 +420,7 @@ export default function App() {
         {/* TAB 2: NUTRITION & RECIPES */}
         {activeTab === 'meals' && (
           <NutritionTracker
+            profile={profile}
             dailyLog={dailyLog}
             targetMacros={targetMacros}
             apiKey={apiKey}
@@ -508,6 +509,7 @@ export default function App() {
 
       {showSettingsModal && (
         <SettingsModal
+          profile={profile}
           apiKey={apiKey}
           travelMode={travelMode}
           targetMacros={targetMacros}
