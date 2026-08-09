@@ -129,8 +129,16 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
   };
 
   const handleFinishExercise = () => {
-    onSaveExerciseSets(sets, elapsedSecs, startedAt);
-    onClose();
+    try {
+      if (typeof onSaveExerciseSets === 'function') {
+        onSaveExerciseSets(sets, elapsedSecs, startedAt);
+      }
+    } catch (e) {
+      console.error('Error saving exercise sets:', e);
+    }
+    if (typeof onClose === 'function') {
+      onClose();
+    }
   };
 
   const formatMinSec = (totalSecs) => {

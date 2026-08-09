@@ -306,39 +306,64 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   };
 
   const handleSaveSetsFromRunner = (updatedSets, elapsedSecs, startedAt) => {
-    if (!activeRunnerExercise) return;
-    const updatedExercises = JSON.parse(JSON.stringify(exercises));
-    const targetIdx = updatedExercises.findIndex((e) => e.exerciseId === activeRunnerExercise.exerciseId || e.name === activeRunnerExercise.name);
+    try {
+      const runnerObj = activeRunnerExercise;
+      if (!runnerObj) return;
 
-    if (targetIdx >= 0) {
-      updatedExercises[targetIdx].sets = updatedSets;
-      updatedExercises[targetIdx].durationSecs = elapsedSecs;
-      updatedExercises[targetIdx].startedAt = startedAt;
-      updatedExercises[targetIdx].completed = true;
-    } else {
-      updatedExercises.push({
-        ...activeRunnerExercise,
-        sets: updatedSets,
-        durationSecs: elapsedSecs,
-        startedAt,
-        completed: true
-      });
+      const safeExercises = Array.isArray(exercises) ? exercises : [];
+      const updatedExercises = safeExercises.map((e) => ({
+        ...e,
+        sets: Array.isArray(e.sets) ? e.sets.map((s) => ({ ...s })) : []
+      }));
+
+      const targetIdx = updatedExercises.findIndex(
+        (e) => e.exerciseId === runnerObj.exerciseId || e.name === runnerObj.name
+      );
+
+      if (targetIdx >= 0) {
+        updatedExercises[targetIdx].sets = updatedSets;
+        updatedExercises[targetIdx].durationSecs = elapsedSecs || 0;
+        updatedExercises[targetIdx].startedAt = startedAt || Date.now();
+        updatedExercises[targetIdx].completed = true;
+      } else {
+        updatedExercises.push({
+          ...runnerObj,
+          sets: updatedSets,
+          durationSecs: elapsedSecs || 0,
+          startedAt: startedAt || Date.now(),
+          completed: true
+        });
+      }
+
+      onUpdateLog({ exercises: updatedExercises });
+      setActiveRunnerExercise(null);
+    } catch (err) {
+      console.error('Error in handleSaveSetsFromRunner:', err);
+      setActiveRunnerExercise(null);
     }
-
-    onUpdateLog({ exercises: updatedExercises });
-    setActiveRunnerExercise(null);
   };
 
   const handleUpdateSet = (exIdx, setIdx, field, val) => {
-    const updatedExercises = JSON.parse(JSON.stringify(exercises));
-    updatedExercises[exIdx].sets[setIdx][field] = val;
+    try {
+      const safeExercises = Array.isArray(exercises) ? exercises : [];
+      const updatedExercises = safeExercises.map((e) => ({
+        ...e,
+        sets: Array.isArray(e.sets) ? e.sets.map((s) => ({ ...s })) : []
+      }));
 
-    if (field === 'completed' && val === true) {
-      const restDuration = updatedExercises[exIdx].restSec || 120;
-      startRestTimer(restDuration);
+      if (updatedExercises[exIdx] && updatedExercises[exIdx].sets && updatedExercises[exIdx].sets[setIdx]) {
+        updatedExercises[exIdx].sets[setIdx][field] = val;
+
+        if (field === 'completed' && val === true) {
+          const restDuration = updatedExercises[exIdx].restSec || 120;
+          startRestTimer(restDuration);
+        }
+
+        onUpdateLog({ exercises: updatedExercises });
+      }
+    } catch (err) {
+      console.error('Error in handleUpdateSet:', err);
     }
-
-    onUpdateLog({ exercises: updatedExercises });
   };
 
   const confirmDeleteExercise = () => {
