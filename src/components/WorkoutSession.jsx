@@ -227,6 +227,17 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     setRestTimerExpired(false);
   };
 
+  const handleTogglePauseRestTimer = () => {
+    if (timerActive) {
+      setTimerActive(false);
+      setRestTargetEndMs(null);
+    } else if (timerSeconds > 0) {
+      const targetEnd = Date.now() + timerSeconds * 1000;
+      setRestTargetEndMs(targetEnd);
+      setTimerActive(true);
+    }
+  };
+
   const getPreviousLogForExercise = (exerciseId, exerciseName) => {
     if (!allDailyLogs || allDailyLogs.length === 0) return null;
     for (let i = allDailyLogs.length - 1; i >= 0; i--) {
@@ -673,7 +684,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
-                    onClick={() => setTimerActive(!timerActive)}
+                    onClick={handleTogglePauseRestTimer}
                     style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: '#fff', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
                   >
                     {timerActive ? <Pause size={16} /> : <Play size={16} />}
@@ -1131,6 +1142,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
           exercise={activeRunnerExercise}
           pastRecord={getPreviousLogForExercise(activeRunnerExercise.exerciseId, activeRunnerExercise.name)}
           onSaveExerciseSets={handleSaveSetsFromRunner}
+          onStartRestTimer={startRestTimer}
           onClose={() => setActiveRunnerExercise(null)}
         />
       )}

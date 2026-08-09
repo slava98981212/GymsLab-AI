@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, CheckSquare, Square, Timer, Check, X, History, Dumbbell, Award, ArrowRight, CheckCircle2, Layers } from 'lucide-react';
 
-export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerciseSets, onClose }) {
+export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerciseSets, onStartRestTimer, onClose }) {
   const isSuperset = exercise.isSuperset || (exercise.subExercises && exercise.subExercises.length > 0);
   const subA = exercise.subExercises && exercise.subExercises[0] ? exercise.subExercises[0] : 'Movement A';
   const subB = exercise.subExercises && exercise.subExercises[1] ? exercise.subExercises[1] : 'Movement B';
@@ -118,6 +118,10 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     setRestExpired(false);
     setRestSeconds(restDurationSec);
     setRestActive(true);
+
+    if (typeof onStartRestTimer === 'function') {
+      onStartRestTimer(restDurationSec);
+    }
   };
 
   const handleUpdateNormalSet = (idx, field, val) => {
