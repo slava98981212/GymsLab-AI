@@ -140,8 +140,8 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: '560px' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div>

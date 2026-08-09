@@ -59,7 +59,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       interval = setInterval(() => {
         setWorkoutElapsedSecs((prev) => {
           const next = prev + 1;
-          if (next % 5 === 0) {
+          if (next % 5 === 0 && activeRunnerExIdx === null) {
             onUpdateLog({ workoutDurationSecs: next, workoutActive: true });
           }
           return next;
@@ -67,7 +67,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [workoutActive]);
+  }, [workoutActive, activeRunnerExIdx]);
 
   // Rest Timer Countdown Effect
   useEffect(() => {
