@@ -1,6 +1,6 @@
 /**
  * OpenAI API Integration Service for GymsLab AI
- * Supports GPT-4o and GPT-4o-mini with visual analysis & memory-driven text reasoning.
+ * Supports GPT-4o and GPT-4o-mini with visual analysis, memory-driven text reasoning, and custom meal planning.
  */
 
 async function callOpenAI({ apiKey, messages, responseFormat = null, model = 'gpt-4o' }) {
@@ -71,15 +71,9 @@ Provide a professional, motivating initial assessment in JSON format with:
   ];
 
   if (profile.photos) {
-    if (profile.photos.front) {
-      contentArray.push({ type: 'image_url', image_url: { url: profile.photos.front } });
-    }
-    if (profile.photos.side) {
-      contentArray.push({ type: 'image_url', image_url: { url: profile.photos.side } });
-    }
-    if (profile.photos.back) {
-      contentArray.push({ type: 'image_url', image_url: { url: profile.photos.back } });
-    }
+    if (profile.photos.front) contentArray.push({ type: 'image_url', image_url: { url: profile.photos.front } });
+    if (profile.photos.side) contentArray.push({ type: 'image_url', image_url: { url: profile.photos.side } });
+    if (profile.photos.back) contentArray.push({ type: 'image_url', image_url: { url: profile.photos.back } });
   }
 
   const messages = [
@@ -91,17 +85,11 @@ Provide a professional, motivating initial assessment in JSON format with:
 }
 
 /**
- * AI Food Photo Scanner - GPT-4o Vision
+ * AI Food Photo + Optional Text Scanner - GPT-4o Vision
  */
-export async function analyzeFoodPhoto(base64Image, apiKey) {
-  const messages = [
-    { role: 'system', content: 'You are an expert sports nutritionist AI. Analyze the food image and estimate macros in JSON.' },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: `Identify the food item(s) in this photo, estimate total weight/portions, and compute approximate nutrition:
+export async function analyzeFoodPhoto(base64Image, textDescription, apiKey) {
+  const promptText = `Identify the food item(s) in this photo ${textDescription ? `with additional user notes: "${textDescription}"` : ''}.
+Estimate exact total weight/portions, and compute approximate nutrition.
 Return JSON:
 {
   "mealName": "Descriptive meal title",
@@ -111,11 +99,16 @@ Return JSON:
   "fat": number (grams),
   "confidence": "High" | "Medium" | "Low",
   "notes": "Brief nutritional advice or portion notes"
-}`
-        },
-        { type: 'image_url', image_url: { url: base64Image } }
-      ]
-    }
+}`;
+
+  const contentArray = [
+    { type: 'text', text: promptText },
+    { type: 'image_url', image_url: { url: base64Image } }
+  ];
+
+  const messages = [
+    { role: 'system', content: 'You are an expert sports nutritionist AI. Analyze the food image and user notes, returning macros in JSON.' },
+    { role: 'user', content: contentArray }
   ];
 
   return callOpenAI({ apiKey, messages, responseFormat: 'json_object', model: 'gpt-4o' });
@@ -149,7 +142,57 @@ Return JSON:
 }
 
 /**
- * Daily 23:00 AI Summary & Form Analysis with Historical Context Memory
+ * AI Custom Daily Meal Plan & Cooking Recipe Generator
+ */
+export async function generateMealPlan({ mealsPerDay, cravings, targetMacros }, apiKey) {
+  const messages = [
+    { role: 'system', content: 'You are an elite sports chef & nutritionist AI generating detailed meal plans in JSON.' },
+    {
+      role: 'user',
+      content: `Generate a custom ${mealsPerDay}-meal daily meal plan for an athlete.
+Target Daily Macros:
+- Calories: ${targetMacros.calories} kcal
+- Protein: ${targetMacros.protein}g
+- Carbs: ${targetMacros.carbs}g
+- Fat: ${targetMacros.fat}g
+User Cravings / Food Requests Today: ${cravings || 'No specific cravings, make clean delicious high-protein meals'}
+
+Requirements:
+Create ${mealsPerDay} meals that sum up approximately to the target daily macros.
+For each meal, provide:
+1. "mealName": Name of the dish
+2. "category": "Breakfast" | "Lunch" | "Dinner" | "Post-Workout" | "Snack"
+3. "calories": number
+4. "protein": number (grams)
+5. "carbs": number (grams)
+6. "fat": number (grams)
+7. "ingredients": array of strings with exact quantities (e.g. ["200g Chicken Breast", "150g Jasmine Rice", "1 tbsp Olive Oil"])
+8. "instructions": step-by-step concise cooking instructions
+
+Return JSON:
+{
+  "summary": "Brief 2-sentence breakdown of today's meal plan strategy",
+  "meals": [
+    {
+      "mealName": string,
+      "category": string,
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number,
+      "ingredients": string[],
+      "instructions": string
+    }
+  ]
+}`
+    }
+  ];
+
+  return callOpenAI({ apiKey, messages, responseFormat: 'json_object', model: 'gpt-4o' });
+}
+
+/**
+ * Daily 23:00 AI Summary & Form Analysis with Memory Context
  */
 export async function generateDaily23Summary(dailyLog, historicalMemory, videoFrames, apiKey) {
   const contentArray = [
@@ -166,22 +209,27 @@ HISTORICAL MEMORY CONTEXT:
 TODAY'S LOGGED METRICS (${dailyLog.date}):
 - Morning Weight: ${dailyLog.weight ? dailyLog.weight + ' kg' : 'Not logged'}
 - Total Macros Consumed: Calories: ${dailyLog.totalMacros?.calories || 0} / ${dailyLog.targetMacros?.calories || 2400} kcal, Protein: ${dailyLog.totalMacros?.protein || 0}g / ${dailyLog.targetMacros?.protein || 180}g, Carbs: ${dailyLog.totalMacros?.carbs || 0}g, Fat: ${dailyLog.totalMacros?.fat || 0}g
-- Warmup Calisthenics Done: ${dailyLog.warmupCompleted ? 'YES' : 'NO'}
-- Cooldown Stretch & Abs Done: ${dailyLog.cooldownCompleted ? 'YES' : 'NO'}
-- Exercises Logged (${dailyLog.exercises?.length || 0}): ${JSON.stringify(dailyLog.exercises || [])}
+- Hydration: ${dailyLog.waterLiters || 0} / 3.5 Liters (${dailyLog.waterGoalMet ? 'Met ✓' : 'Not met'})
+- Daily Steps: ${dailyLog.steps || 0} / 10,000 steps (${dailyLog.stepsGoalMet ? 'Met ✓' : 'Not met'})
+- Daily Supplements: Creatine: ${dailyLog.supplements?.creatine ? 'YES' : 'NO'}, Whey Protein: ${dailyLog.supplements?.protein ? 'YES' : 'NO'}
+- Daily Vitamins: ${JSON.stringify(dailyLog.vitamins || {})}
+- Calisthenics Session: ${dailyLog.calisthenicsCompleted ? 'YES' : 'N/A'}
+- Sauna Session: ${dailyLog.saunaCompleted ? 'YES' : 'N/A'}
+- Warmup Completed: ${dailyLog.warmupCompleted ? 'YES' : 'NO'}
+- Cooldown Stretch & Abs Completed: ${dailyLog.cooldownCompleted ? 'YES' : 'NO'}
+- Main Exercises Logged (${dailyLog.exercises?.length || 0}): ${JSON.stringify(dailyLog.exercises || [])}
 - Form Videos Recorded: ${dailyLog.videos?.length || 0} video clips uploaded.
 
-TASK:
 Provide an inspiring, rigorous daily evaluation comparing today's performance against past historical memory.
-If exercise video keyframes are attached below, carefully analyze movement form, depth, back alignment, and tempo.
+If exercise video keyframes are attached below, analyze technique and form.
 
 Return JSON:
 {
   "grade": "A+" | "A" | "B" | "C" | "D",
   "goalAchieved": true | false,
   "headline": "Punchy 1-line summary title",
-  "nutritionFeedback": "Detailed feedback on calorie & macro targets",
-  "workoutFeedback": "Detailed feedback on calisthenics warmup, heavy sets, and stretch/abs",
+  "nutritionFeedback": "Detailed feedback on calorie, macro, hydration (3.5L), and step targets",
+  "workoutFeedback": "Detailed feedback on calisthenics warmup, heavy sets, sauna, and stretch/abs",
   "formAnalysis": "Detailed form feedback based on uploaded videos (or note if no videos)",
   "comparativeMemoryInsight": "How today compares to previous days and baseline waist/strength metrics",
   "tomorrowRecommendation": "1-2 actionable tips for tomorrow"
@@ -189,7 +237,6 @@ Return JSON:
     }
   ];
 
-  // Attach food photo URLs or video frame URLs if available
   if (videoFrames && videoFrames.length > 0) {
     videoFrames.forEach((frameBase64) => {
       contentArray.push({ type: 'image_url', image_url: { url: frameBase64 } });
@@ -222,7 +269,7 @@ CURRENT WEEK DATA (${weeklyData.weekId}):
 - Current Waist Size: ${weeklyData.waist} cm
 - Current Bicep Size: ${weeklyData.bicepLeft} cm (L) / ${weeklyData.bicepRight} cm (R)
 - Current Chest Size: ${weeklyData.chest || 'N/A'} cm
-- Average Daily Calories: ${weeklyData.avgCalories || 'N/A'} kcal
+- Average Daily Hydration & Steps Compliance: ${weeklyData.hydrationRate || 'High'}
 
 Compare current week photos and measurements against baseline.
 Return JSON:

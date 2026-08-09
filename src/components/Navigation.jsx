@@ -1,12 +1,13 @@
 import React from 'react';
-import { LayoutDashboard, Utensils, Dumbbell, Video, Award, Calendar } from 'lucide-react';
+import { LayoutDashboard, Utensils, Dumbbell, TrendingUp, Video, Award, Calendar } from 'lucide-react';
 
 export default function Navigation({ activeTab, setActiveTab, is1RMDue }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'meals', label: 'Nutrition', icon: Utensils },
     { id: 'workout', label: 'Workout', icon: Dumbbell },
-    { id: 'videos', label: 'Form Videos', icon: Video },
+    { id: 'stats', label: 'Stats', icon: TrendingUp },
+    { id: 'videos', label: 'Videos', icon: Video },
     { id: '1rm', label: '1RM Test', icon: Award, badge: is1RMDue },
     { id: 'weekly', label: 'Weekly', icon: Calendar }
   ];
@@ -23,8 +24,8 @@ export default function Navigation({ activeTab, setActiveTab, is1RMDue }) {
             className={`nav-item ${isActive ? 'active' : ''}`}
             style={{ position: 'relative' }}
           >
-            <Icon size={20} />
-            <span>{tab.label}</span>
+            <Icon size={18} />
+            <span style={{ fontSize: '0.65rem' }}>{tab.label}</span>
             {tab.badge && (
               <span style={{
                 position: 'absolute',

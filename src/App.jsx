@@ -11,6 +11,7 @@ import WeeklyCheckin from './components/WeeklyCheckin';
 import SettingsModal from './components/SettingsModal';
 import MaxTest1RMModal from './components/MaxTest1RMModal';
 import MeasurementGuideModal from './components/MeasurementGuideModal';
+import Statistics from './components/Statistics';
 
 import {
   getProfile,
@@ -36,7 +37,12 @@ import {
   TrendingDown,
   Plane,
   Ruler,
-  HelpCircle
+  HelpCircle,
+  TrendingUp,
+  Droplets,
+  Footprints,
+  Pill,
+  ChefHat
 } from 'lucide-react';
 
 const DEFAULT_OPENAI_KEY = '';
@@ -59,12 +65,20 @@ export default function App() {
     cooldownCompleted: false,
     warmupChecks: {},
     cooldownChecks: {},
+    mwfChecks: {},
+    calisthenicsCompleted: false,
+    saunaCompleted: false,
+    waterLiters: 0,
+    steps: 0,
+    supplements: { creatine: false, protein: false },
+    vitamins: { vitaminD3: false, omega3: false, multivitamin: false, zma: false, vitaminC: false },
     totalMacros: { calories: 0, protein: 0, carbs: 0, fat: 0 },
     aiDailySummary: null
   });
 
   // Historical memory state
   const [historicalMemory, setHistoricalMemory] = useState({});
+  const [allDailyLogsList, setAllDailyLogsList] = useState([]);
   const [is1RMDue, setIs1RMDue] = useState(false);
 
   // Settings & Modals state
@@ -96,9 +110,6 @@ export default function App() {
       const savedKey = await getSetting('openai_api_key');
       const keyToUse = savedKey || DEFAULT_OPENAI_KEY;
       setApiKey(keyToUse);
-      if (!savedKey) {
-        await saveSetting('openai_api_key', DEFAULT_OPENAI_KEY);
-      }
 
       const savedTravel = await getSetting('travel_mode');
       if (savedTravel !== null) setTravelMode(savedTravel);
@@ -108,14 +119,15 @@ export default function App() {
       if (todayData) {
         setDailyLog((prev) => ({ ...prev, ...todayData }));
       } else {
-        // Prompt for morning weight if not set and not in travel mode
         if (prof && !savedTravel) {
           setShowMorningWeightModal(true);
         }
       }
 
-      // 4. Fetch History for OpenAI Memory Context
+      // 4. Fetch History for OpenAI Memory Context & Exercise Memory
       const allDaily = await getAllDailyLogs();
+      setAllDailyLogsList(allDaily);
+
       const recentWeights = allDaily
         .filter((d) => d.weight)
         .slice(-7)
@@ -129,7 +141,6 @@ export default function App() {
       const all1RM = await getAll1RMTests();
       const latest1RM = all1RM.length > 0 ? all1RM[0] : null;
 
-      // Check if 15 days elapsed since last 1RM test
       if (all1RM.length === 0) {
         setIs1RMDue(true);
       } else {
@@ -318,7 +329,7 @@ export default function App() {
                 )}
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                Evaluates morning weight, total macros, warmup/workout/stretch completion, and 20s form videos with historical AI memory.
+                Evaluates weight, macros, 3.5L water, 10k steps, supplements/vitamins, workout sets, sauna, and 20s form videos.
               </p>
 
               <button
@@ -361,8 +372,8 @@ export default function App() {
                 style={{ cursor: 'pointer', textAlign: 'center', padding: '1.25rem' }}
               >
                 <Utensils color="var(--primary-cyan)" size={24} style={{ marginBottom: '0.5rem' }} />
-                <h4 style={{ fontSize: '0.95rem', margin: 0 }}>AI Food Vision</h4>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>Scan & Log Meals</p>
+                <h4 style={{ fontSize: '0.95rem', margin: 0 }}>AI Food & Recipes</h4>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>Photos, Text & Meal Plans</p>
               </div>
 
               <div
@@ -371,14 +382,14 @@ export default function App() {
                 style={{ cursor: 'pointer', textAlign: 'center', padding: '1.25rem' }}
               >
                 <Dumbbell color="var(--accent-emerald)" size={24} style={{ marginBottom: '0.5rem' }} />
-                <h4 style={{ fontSize: '0.95rem', margin: 0 }}>3-Stage Workout</h4>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>Warmup, Sets, Stretch</p>
+                <h4 style={{ fontSize: '0.95rem', margin: 0 }}>Weekly Split</h4>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>Supersets, Sauna & Memory</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 2: NUTRITION */}
+        {/* TAB 2: NUTRITION & RECIPES */}
         {activeTab === 'meals' && (
           <NutritionTracker
             dailyLog={dailyLog}
@@ -393,11 +404,17 @@ export default function App() {
         {activeTab === 'workout' && (
           <WorkoutSession
             dailyLog={dailyLog}
+            allDailyLogs={allDailyLogsList}
             onUpdateLog={handleUpdateDailyLog}
           />
         )}
 
-        {/* TAB 4: 20S FORM VIDEO VAULT */}
+        {/* TAB 4: STATISTICS & ANALYTICS */}
+        {activeTab === 'stats' && (
+          <Statistics profile={profile} />
+        )}
+
+        {/* TAB 5: 20S FORM VIDEO VAULT */}
         {activeTab === 'videos' && (
           <VideoRecorder
             dailyLog={dailyLog}
@@ -405,7 +422,7 @@ export default function App() {
           />
         )}
 
-        {/* TAB 5: 1RM STRENGTH BENCHMARK */}
+        {/* TAB 6: 1RM STRENGTH BENCHMARK */}
         {activeTab === '1rm' && (
           <div style={{ padding: '1rem 0' }}>
             <MaxTest1RMModal
@@ -415,7 +432,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 6: WEEKLY CHECK-IN */}
+        {/* TAB 7: WEEKLY CHECK-IN */}
         {activeTab === 'weekly' && (
           <WeeklyCheckin
             profile={profile}
