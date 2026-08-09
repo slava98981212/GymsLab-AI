@@ -447,6 +447,7 @@ export default function App() {
             dailyLog={dailyLog}
             allDailyLogs={allDailyLogsList}
             onUpdateLog={handleUpdateDailyLog}
+            onSelectDate={setSelectedDate}
           />
         )}
 

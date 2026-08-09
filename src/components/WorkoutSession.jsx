@@ -3,12 +3,48 @@ import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateC
 import { WEEKLY_WORKOUT_SPLIT, MON_WED_FRI_ROUTINE, PRESET_EXERCISES } from '../utils/constants';
 import ExerciseRunnerModal from './ExerciseRunnerModal';
 
-export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) {
+export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, onSelectDate }) {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const todayDayName = dayNames[new Date().getDay()];
 
-  const [selectedDay, setSelectedDay] = useState(todayDayName);
+  // Calculate day name corresponding to dailyLog.date
+  const getDayNameFromDateStr = (dateStr) => {
+    if (!dateStr) return dayNames[new Date().getDay()];
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    return dayNames[dateObj.getDay()];
+  };
+
+  const [selectedDay, setSelectedDay] = useState(() => getDayNameFromDateStr(dailyLog?.date));
   const [activeStage, setActiveStage] = useState('main');
+
+  // Keep selectedDay in sync with dailyLog.date changes from Header Date Navigator
+  useEffect(() => {
+    if (dailyLog?.date) {
+      const computedDayName = getDayNameFromDateStr(dailyLog.date);
+      if (computedDayName) {
+        setSelectedDay(computedDayName);
+      }
+    }
+  }, [dailyLog?.date]);
+
+  const handleSelectDayTab = (targetDayName) => {
+    setSelectedDay(targetDayName);
+    if (dailyLog?.date && typeof onSelectDate === 'function') {
+      const [y, m, d] = dailyLog.date.split('-').map(Number);
+      const currentDateObj = new Date(y, m - 1, d);
+      const currentDayIdx = currentDateObj.getDay();
+      const targetDayIdx = dayNames.indexOf(targetDayName);
+      if (targetDayIdx >= 0) {
+        const diffDays = targetDayIdx - currentDayIdx;
+        const targetDateObj = new Date(currentDateObj);
+        targetDateObj.setDate(targetDateObj.getDate() + diffDays);
+        const targetDateStr = targetDateObj.toISOString().slice(0, 10);
+        if (targetDateStr !== dailyLog.date) {
+          onSelectDate(targetDateStr);
+        }
+      }
+    }
+  };
 
   const currentDayProgram = WEEKLY_WORKOUT_SPLIT[selectedDay] || WEEKLY_WORKOUT_SPLIT.Saturday;
   const isMonWedFri = ['Monday', 'Wednesday', 'Friday'].includes(selectedDay);
@@ -453,7 +489,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
             return (
               <button
                 key={d}
-                onClick={() => setSelectedDay(d)}
+                onClick={() => handleSelectDayTab(d)}
                 style={{
                   padding: '0.45rem 0.75rem',
                   borderRadius: '10px',
