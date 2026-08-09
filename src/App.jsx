@@ -201,7 +201,7 @@ export default function App() {
   };
 
   const handleUpdateDailyLog = async (fieldsToUpdate) => {
-    const updated = { ...dailyLog, ...fieldsToUpdate, date: selectedDate };
+    const updated = { ...dailyLog, ...fieldsToUpdate, travelMode, date: selectedDate };
     setDailyLog(updated);
     await saveDailyLog(selectedDate, updated);
   };

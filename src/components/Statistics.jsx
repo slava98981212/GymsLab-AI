@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Scale, Dumbbell, Award, Calendar, Activity, Zap, RefreshCw } from 'lucide-react';
+import { TrendingUp, Scale, Dumbbell, Award, Calendar, Activity, Zap, RefreshCw, Plane } from 'lucide-react';
 import { getAllDailyLogs, getAll1RMTests, getAllWeeklyLogs } from '../services/db';
 import { PRESET_EXERCISES } from '../utils/constants';
 
@@ -24,7 +24,10 @@ export default function Statistics({ profile }) {
   };
 
   // Weight Trend Data
-  const weightData = dailyLogs.filter((d) => d.weight).map((d) => ({ date: d.date, weight: d.weight }));
+  const weightData = dailyLogs.filter((d) => d.weight).map((d) => ({ date: d.date, weight: d.weight, isVacation: d.travelMode }));
+
+  // Vacation / Travel Days History
+  const vacationLogs = dailyLogs.filter((d) => d.travelMode);
 
   // Exercise Specific History Data
   const selectedExObj = PRESET_EXERCISES.find((e) => e.id === selectedExId) || PRESET_EXERCISES[0];
@@ -35,7 +38,7 @@ export default function Statistics({ profile }) {
       if (match && match.sets && match.sets.length > 0) {
         const maxSetWeight = Math.max(...match.sets.map((s) => Number(s.weight) || 0));
         const maxSetReps = match.sets.find((s) => Number(s.weight) === maxSetWeight)?.reps || 0;
-        exHistory.push({ date: d.date, weight: maxSetWeight, reps: maxSetReps });
+        exHistory.push({ date: d.date, weight: maxSetWeight, reps: maxSetReps, isVacation: d.travelMode });
       }
     }
   });
@@ -54,29 +57,56 @@ export default function Statistics({ profile }) {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', textAlign: 'center' }}>
-          <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Baseline Waist</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-cyan)', marginTop: '0.2rem' }}>
-              {profile?.waist || 85} <span style={{ fontSize: '0.7rem' }}>cm</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem', textAlign: 'center' }}>
+          <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.75rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Waist Size</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary-cyan)', marginTop: '0.2rem' }}>
+              {profile?.waist || 85} <span style={{ fontSize: '0.65rem' }}>cm</span>
             </div>
           </div>
 
-          <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Target Weight</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)', marginTop: '0.2rem' }}>
-              {profile?.targetWeight || 78} <span style={{ fontSize: '0.7rem' }}>kg</span>
+          <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.75rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Target Weight</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-emerald)', marginTop: '0.2rem' }}>
+              {profile?.targetWeight || 78} <span style={{ fontSize: '0.65rem' }}>kg</span>
             </div>
           </div>
 
-          <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Logged Days</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
-              {dailyLogs.length} <span style={{ fontSize: '0.7rem' }}>days</span>
+          <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.75rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Active Days</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
+              {dailyLogs.length} <span style={{ fontSize: '0.65rem' }}>days</span>
+            </div>
+          </div>
+
+          <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.75rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Vacation Days</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-purple)', marginTop: '0.2rem' }}>
+              {vacationLogs.length} <span style={{ fontSize: '0.65rem' }}>days</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* VACATION / TRAVEL RECOVERY LOG CARD */}
+      {vacationLogs.length > 0 && (
+        <div className="glass-card" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', background: 'rgba(245, 158, 11, 0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <Plane size={18} color="var(--accent-amber)" />
+            <h3 style={{ fontSize: '1.05rem', margin: 0, color: 'var(--accent-amber)' }}>Vacation & Travel Recovery Log</h3>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+            The app remembered {vacationLogs.length} planned vacation days. Streaks and stats acknowledge these dates as travel recovery!
+          </p>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {vacationLogs.map((v, vIdx) => (
+              <span key={vIdx} className="badge badge-amber" style={{ fontSize: '0.7rem' }}>
+                ✈️ {v.date}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* CHART 1: Body Weight Evolution */}
       <div className="glass-card">
@@ -93,7 +123,10 @@ export default function Statistics({ profile }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {weightData.slice(-7).map((item, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2, 6, 23, 0.5)', padding: '0.65rem 0.85rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</span>
+                  {item.isVacation && <span className="badge badge-amber" style={{ fontSize: '0.6rem' }}>✈️ Vacation</span>}
+                </div>
                 <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-cyan)' }}>
                   {item.weight} kg
                 </span>
@@ -131,7 +164,10 @@ export default function Statistics({ profile }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {exHistory.map((item, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2, 6, 23, 0.5)', padding: '0.65rem 0.85rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</span>
+                  {item.isVacation && <span className="badge badge-amber" style={{ fontSize: '0.6rem' }}>✈️ Vacation</span>}
+                </div>
                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>
                   {item.weight} kg × {item.reps} reps
                 </span>
