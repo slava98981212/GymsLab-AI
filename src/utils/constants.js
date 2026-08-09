@@ -185,6 +185,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Tuesday: {
     dayName: 'Calisthenics Skill Focus (Tuesday)',
     tag: 'Calisthenics Focus',
+    isCalisthenicsOnlyDay: true,
     warmupTitle: 'Bodyweight Skill & Core Warmup',
     warmup: [
       { id: 'tue_w1', name: 'Jumping Jacks & Arm Circles', duration: '60 sec' },
@@ -192,13 +193,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
       { id: 'tue_w3', name: 'Hollow Position + Superman', duration: '60 sec' },
       { id: 'tue_w4', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' }
     ],
-    mainExercises: [
-      { id: 'tue_m1', name: 'Handstand Practice / Wall Walks', targetSets: 4, targetReps: 60, restSec: 120, note: 'Focus on balance' },
-      { id: 'tue_m2', name: 'Front Lever Progressions', targetSets: 4, targetReps: 20, restSec: 120, note: 'Hold isometric' },
-      { id: 'tue_m3', name: 'Ring Dips / Muscle-Up Practice', targetSets: 4, targetReps: 6, restSec: 120, note: 'Strict form' },
-      { id: 'tue_m4', name: 'L-Sit Hold / Parallel Bars', targetSets: 4, targetReps: 30, restSec: 90, note: 'Core strength' },
-      { id: 'tue_m5', name: 'High Pulls & Explosive Chin-ups', targetSets: 4, targetReps: 6, restSec: 120, note: 'Explosive power' }
-    ],
+    mainExercises: [],
     cooldown: [
       { id: 'tue_c1', name: 'Full Calisthenics Shoulder & Wrist Stretch', duration: '5 min', type: 'stretch' }
     ]
@@ -280,6 +275,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Friday: {
     dayName: 'Calisthenics & Cardio Day (Friday)',
     tag: 'Calisthenics & Cardio',
+    isCalisthenicsOnlyDay: true,
     warmupTitle: 'Cardio Warmup + Mon/Wed/Fri Routine',
     includeMonWedFri: true,
     warmup: [
@@ -287,11 +283,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
       { id: 'fri_w2', name: 'Plank Up Down with Knee Drive', duration: '45 sec' },
       { id: 'fri_w3', name: 'Hollow Position + Superman', duration: '60 sec' }
     ],
-    mainExercises: [
-      { id: 'fri_m1', name: 'Ring Muscle-Ups / Pull-up Burnout', targetSets: 4, targetReps: 10, restSec: 120, note: 'Max effort' },
-      { id: 'fri_m2', name: 'Weighted Dips / Push-up Ladder', targetSets: 4, targetReps: 15, restSec: 120, note: 'Pec & tricep pump' },
-      { id: 'fri_m3', name: 'Core & Ab Wheel Rollouts', targetSets: 4, targetReps: 15, restSec: 90, note: 'Core bracing' }
-    ],
+    mainExercises: [],
     cooldown: [
       { id: 'fri_c1', name: 'Full Body Mobility & Cooldown Stretch', duration: '5 min', type: 'stretch' }
     ]
