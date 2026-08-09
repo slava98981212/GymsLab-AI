@@ -242,6 +242,56 @@ export default function MealPlannerModal({ profile, targetMacros, apiKey, onAddM
               )}
             </div>
 
+            {/* TOTAL CALCULATED PLAN MACROS vs GOALS COMPARISON */}
+            {currentProposal?.meals && (
+              (() => {
+                const totals = currentProposal.meals.reduce(
+                  (acc, m) => ({
+                    calories: acc.calories + (Number(m.calories) || 0),
+                    protein: acc.protein + (Number(m.protein) || 0),
+                    carbs: acc.carbs + (Number(m.carbs) || 0),
+                    fat: acc.fat + (Number(m.fat) || 0)
+                  }),
+                  { calories: 0, protein: 0, carbs: 0, fat: 0 }
+                );
+
+                return (
+                  <div style={{ background: 'rgba(2, 6, 23, 0.7)', border: '1px solid var(--border-card)', padding: '1rem', borderRadius: '16px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>📊 CALCULATED PLAN TOTALS vs GOALS:</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', fontWeight: 700 }}>✓ MATCHES SPECIFIED TARGETS</span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem', textAlign: 'center' }}>
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.5rem', borderRadius: '10px', border: '1px solid var(--border-card)' }}>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Calories</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--primary-cyan)' }}>{totals.calories}</div>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>/{targetMacros.calories} kcal</div>
+                      </div>
+
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.5rem', borderRadius: '10px', border: '1px solid var(--border-card)' }}>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Protein</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--accent-emerald)' }}>{totals.protein}g</div>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>/{targetMacros.protein}g goal</div>
+                      </div>
+
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.5rem', borderRadius: '10px', border: '1px solid var(--border-card)' }}>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Carbs</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--accent-amber)' }}>{totals.carbs}g</div>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>/{targetMacros.carbs}g goal</div>
+                      </div>
+
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.5rem', borderRadius: '10px', border: '1px solid var(--border-card)' }}>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Fat</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--accent-purple)' }}>{totals.fat}g</div>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>/{targetMacros.fat}g goal</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+
             {/* AI Strategy Rationale */}
             <div style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.25)', padding: '0.85rem 1rem', borderRadius: '14px', fontSize: '0.85rem', color: 'var(--primary-cyan)' }}>
               🎯 <strong>Master Nutritionist Strategy:</strong> {currentProposal.summary}

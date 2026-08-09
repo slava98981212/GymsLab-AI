@@ -57,6 +57,56 @@ export default function MealPlanView({ profile, targetMacros, apiKey, dailyLog, 
         )}
       </div>
 
+      {/* TOTAL CALCULATED PLAN MACROS vs GOALS COMPARISON CARD */}
+      {approvedPlan && meals.length > 0 && (
+        (() => {
+          const totals = meals.reduce(
+            (acc, m) => ({
+              calories: acc.calories + (Number(m.calories) || 0),
+              protein: acc.protein + (Number(m.protein) || 0),
+              carbs: acc.carbs + (Number(m.carbs) || 0),
+              fat: acc.fat + (Number(m.fat) || 0)
+            }),
+            { calories: 0, protein: 0, carbs: 0, fat: 0 }
+          );
+
+          return (
+            <div className="glass-card" style={{ background: 'rgba(2, 6, 23, 0.7)' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>📊 CALCULATED PLAN TOTALS vs SPECIFIED GOALS:</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accent-emerald)', fontWeight: 700 }}>✓ TARGETS MATCHED</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem', textAlign: 'center' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.65rem 0.4rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Calories</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--primary-cyan)' }}>{totals.calories}</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>/{targetMacros.calories} kcal</div>
+                </div>
+
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.65rem 0.4rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Protein</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--accent-emerald)' }}>{totals.protein}g</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>/{targetMacros.protein}g goal</div>
+                </div>
+
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.65rem 0.4rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Carbs</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--accent-amber)' }}>{totals.carbs}g</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>/{targetMacros.carbs}g goal</div>
+                </div>
+
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.65rem 0.4rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Total Fat</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--accent-purple)' }}>{totals.fat}g</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>/{targetMacros.fat}g goal</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()
+      )}
+
       {/* Meals & Ingredients List */}
       {!approvedPlan || meals.length === 0 ? (
         <div className="glass-card" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>

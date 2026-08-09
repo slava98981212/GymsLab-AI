@@ -159,6 +159,7 @@ CRITICAL NUTRITIONIST RULES:
 2. DO NOT REPEAT THE SAME DISH! If the user requests a food (e.g. "salmon" or "eggs"), integrate it into 1 optimal meal. DO NOT generate 6 salmon poke bowls or repeat dishes across meals. Provide diverse, delicious, high-protein recipes.
 3. MANDATORY ITEMS: ALWAYS include Creatine Monohydrate (5g) and a Whey Protein Shake in the daily schedule!
 4. MEAL TIMING: Assign realistic approximate meal times between 07:00 AM and 22:00 PM (10:00 PM) for the ${mealsPerDay} meals.
+5. STRICT MACRO TARGET MATCHING: The sum of calories and macros across all ${mealsPerDay} meals MUST match the target goals precisely: ${targetMacros.calories} kcal, ${targetMacros.protein}g Protein, ${targetMacros.carbs}g Carbs, ${targetMacros.fat}g Fat (within +/- 2% accuracy).
 
 Return JSON format:
 {
