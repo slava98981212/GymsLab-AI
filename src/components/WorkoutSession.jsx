@@ -45,6 +45,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   // Rest Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const [restTimerExpired, setRestTimerExpired] = useState(false);
 
   // Saved Past Workouts for Today
   const savedWorkouts = dailyLog?.savedWorkouts || [];
@@ -75,17 +76,18 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       }, 1000);
     } else if (timerSeconds === 0 && timerActive) {
       setTimerActive(false);
+      setRestTimerExpired(true);
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
-        osc.stop(ctx.currentTime + 0.5);
+        osc.stop(ctx.currentTime + 0.6);
       } catch (e) {
         console.log('Audio chime error', e);
       }
@@ -459,45 +461,68 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
             </div>
           </div>
 
-          {/* Rest Timer Active Banner */}
-          {timerSeconds > 0 && (
+          {/* Rest Timer Banner: Active Countdown OR Red Expired Alert with OK Button */}
+          {(timerSeconds > 0 || restTimerExpired) && (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.95), rgba(59, 130, 246, 0.95))',
+              background: restTimerExpired
+                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.98), rgba(185, 28, 28, 0.98))'
+                : 'linear-gradient(135deg, rgba(6, 182, 212, 0.95), rgba(59, 130, 246, 0.95))',
               padding: '0.85rem 1.25rem',
               borderRadius: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               color: '#ffffff',
-              boxShadow: '0 8px 25px var(--primary-cyan-glow)',
+              boxShadow: restTimerExpired ? '0 0 25px rgba(239, 68, 68, 0.6)' : '0 8px 25px var(--primary-cyan-glow)',
               position: 'sticky',
               top: '70px',
               zIndex: 840
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Timer size={22} className="spin" />
+                <Timer size={24} className={restTimerExpired ? '' : 'spin'} />
                 <div>
-                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>Rest Countdown</div>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9, fontWeight: 700 }}>
+                    {restTimerExpired ? '⏰ REST FINISHED! GET TO WORK' : 'Rest Countdown'}
+                  </div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>
-                    {Math.floor(timerSeconds / 60)}:{String(timerSeconds % 60).padStart(2, '0')}
+                    {restTimerExpired ? '00:00' : `${Math.floor(timerSeconds / 60)}:${String(timerSeconds % 60).padStart(2, '0')}`}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {restTimerExpired ? (
                 <button
-                  onClick={() => setTimerActive(!timerActive)}
-                  style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: '#fff', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
+                  onClick={() => setRestTimerExpired(false)}
+                  style={{
+                    background: '#ffffff',
+                    border: 'none',
+                    color: '#dc2626',
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: '12px',
+                    fontWeight: 900,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                  }}
                 >
-                  {timerActive ? <Pause size={16} /> : <Play size={16} />}
+                  OK
                 </button>
-                <button
-                  onClick={() => { setTimerSeconds(0); setTimerActive(false); }}
-                  style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: '#fff', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
-                >
-                  <RotateCcw size={16} />
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => setTimerActive(!timerActive)}
+                    style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: '#fff', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
+                  >
+                    {timerActive ? <Pause size={16} /> : <Play size={16} />}
+                  </button>
+                  <button
+                    onClick={() => { setTimerSeconds(0); setTimerActive(false); }}
+                    style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: '#fff', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

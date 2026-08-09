@@ -34,9 +34,11 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     return Math.floor((Date.now() - startedAt) / 1000);
   });
 
+  // Rest Timer State & Finished Alert
   const restDurationSec = exercise.restSec || 120;
   const [restSeconds, setRestSeconds] = useState(0);
   const [restActive, setRestActive] = useState(false);
+  const [restExpired, setRestExpired] = useState(false);
 
   useEffect(() => {
     if (isCompleted) return;
@@ -54,6 +56,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
       }, 1000);
     } else if (restSeconds === 0 && restActive) {
       setRestActive(false);
+      setRestExpired(true);
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -74,6 +77,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
 
   const startRestTimer = () => {
     if (isCompleted) return;
+    setRestExpired(false);
     setRestSeconds(restDurationSec);
     setRestActive(true);
   };
@@ -94,7 +98,6 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     setSets(updated);
 
     if ((field === 'exAChecked' || field === 'exBChecked') && val === true && !isCompleted) {
-      // If both exercises in pair checked, trigger rest!
       if (updated[idx].exAChecked && updated[idx].exBChecked) {
         startRestTimer();
       }
@@ -169,7 +172,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
           </button>
         </div>
 
-        {/* Elapsed Timer / Frozen Duration Display */}
+        {/* Elapsed Timer / Frozen Duration & Rest Timer Card */}
         <div style={{ display: 'grid', gridTemplateColumns: isCompleted ? '1fr' : '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
           <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: isCompleted ? '1px solid var(--accent-emerald)' : '1px solid var(--border-card)', padding: '0.85rem', borderRadius: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
@@ -183,25 +186,50 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
 
           {!isCompleted && (
             <div style={{
-              background: restActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))' : 'rgba(2, 6, 23, 0.6)',
-              border: restActive ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
+              background: restExpired
+                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(185, 28, 28, 0.95))'
+                : restActive
+                ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))'
+                : 'rgba(2, 6, 23, 0.6)',
+              border: restExpired ? '2px solid #ef4444' : restActive ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
               padding: '0.85rem',
               borderRadius: '16px',
-              textAlign: 'center'
+              textAlign: 'center',
+              boxShadow: restExpired ? '0 0 20px rgba(239, 68, 68, 0.5)' : 'none'
             }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                <Timer size={12} color="var(--accent-amber)" /> Rest Timer ({restDurationSec}s)
+              <div style={{ fontSize: '0.7rem', color: restExpired ? '#ffffff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', fontWeight: restExpired ? 700 : 400 }}>
+                <Timer size={12} color={restExpired ? '#ffffff' : 'var(--accent-amber)'} />
+                {restExpired ? '⏰ REST FINISHED!' : `Rest Timer (${restDurationSec}s)`}
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: restActive ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
-                {restSeconds > 0 ? formatMinSec(restSeconds) : 'Ready'}
-              </div>
+
+              {restExpired ? (
+                <button
+                  onClick={() => setRestExpired(false)}
+                  style={{
+                    marginTop: '0.35rem',
+                    background: '#ffffff',
+                    border: 'none',
+                    color: '#dc2626',
+                    padding: '0.3rem 1rem',
+                    borderRadius: '10px',
+                    fontWeight: 900,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  OK
+                </button>
+              ) : (
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: restActive ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  {restSeconds > 0 ? formatMinSec(restSeconds) : 'Ready'}
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* SET LOGGING INPUTS: ALTERNATING SUPERSET vs NORMAL SETS */}
         {isSuperset ? (
-          /* ALTERNATING SUPERSET FORMAT REQUESTED BY USER */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
             {sets.map((set, idx) => (
               <div
@@ -221,7 +249,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
                   {set.exAChecked && set.exBChecked && <span className="badge badge-emerald">ROUND DONE ✓</span>}
                 </div>
 
-                {/* Sub Exercise A (e.g. Bench Press) */}
+                {/* Sub Exercise A */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: set.exAChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)', padding: '0.6rem 0.85rem', borderRadius: '12px' }}>
                   <div style={{ flex: 2, fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-cyan)' }}>
                     🏋️ {subA}
@@ -259,7 +287,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
                   </button>
                 </div>
 
-                {/* Sub Exercise B (e.g. Pull-ups) */}
+                {/* Sub Exercise B */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: set.exBChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)', padding: '0.6rem 0.85rem', borderRadius: '12px' }}>
                   <div style={{ flex: 2, fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-amber)' }}>
                     🏋️ {subB}
@@ -364,7 +392,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={handleAddSet} className="btn-secondary" style={{ flex: 1 }}>
-            + Add Superset Pair
+            + Add Set
           </button>
 
           <button onClick={handleFinishExercise} className="btn-emerald" style={{ flex: 2 }}>
