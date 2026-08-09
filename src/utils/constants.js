@@ -32,22 +32,271 @@ export const MEASUREMENT_GUIDES = {
   }
 };
 
-export const CALISTHENICS_WARMUP = [
-  { id: 'w1', name: 'Jumping Jacks', duration: '60 sec', reps: '40 reps', category: 'Cardio' },
-  { id: 'w2', name: 'Arm Circles & Shoulder Dislocates', duration: '45 sec', reps: '20 forward / 20 reverse', category: 'Mobility' },
-  { id: 'w3', name: 'Bodyweight Push-ups', duration: '45 sec', reps: '15 - 20 reps', category: 'Upper Body' },
-  { id: 'w4', name: 'Deep Bodyweight Squats', duration: '60 sec', reps: '20 reps', category: 'Lower Body' },
-  { id: 'w5', name: 'High Knees / Mountain Climbers', duration: '45 sec', reps: '30 reps', category: 'Core & Warmup' }
-];
+// Mon/Wed/Fri Special Cardio & Calves/Tibialis Routine
+export const MON_WED_FRI_ROUTINE = {
+  title: 'Mon / Wed / Fri Cardio & Calves / Tibialis Routine',
+  items: [
+    { id: 'mwf1', name: 'Rope Jumps (Switching Single Leg)', reps: '50 reps', category: 'Cardio' },
+    { id: 'mwf2', name: 'Double Unders', reps: '50 reps', category: 'Cardio' },
+    { id: 'mwf3', name: 'Calf Machine (Weight Log)', sets: 3, reps: '12 - 15 reps', rest: '90s', category: 'Calves' },
+    {
+      id: 'mwf4',
+      name: 'SUPERSET: Tibialis Raises + Abs Crunches + Russian Swings',
+      isSuperset: true,
+      exercises: ['Tibialis Raises (15 reps)', 'Abs Crunches (20 reps)', 'Russian Swings (20 reps)'],
+      sets: 3,
+      rest: '120s',
+      category: 'Superset Core'
+    }
+  ]
+};
 
-export const STRETCH_AND_ABS_COOLDOWN = [
-  { id: 'c1', name: 'Plank Hold', duration: '60 sec', type: 'abs', target: 'Core Stability' },
-  { id: 'c2', name: 'Bicycle Crunches', reps: '25 reps per side', type: 'abs', target: 'Obliques' },
-  { id: 'c3', name: 'Hanging / Lying Leg Raises', reps: '15 - 20 reps', type: 'abs', target: 'Lower Abs' },
-  { id: 'c4', name: 'Cobra Chest & Ab Stretch', duration: '45 sec', type: 'stretch', target: 'Abdominals' },
-  { id: 'c5', name: 'Standing Quad & Hamstring Stretch', duration: '60 sec', type: 'stretch', target: 'Lower Body Mobility' },
-  { id: 'c6', name: 'Doorway Pec & Lat Stretch', duration: '45 sec', type: 'stretch', target: 'Upper Body' }
-];
+// Complete Weekly Split Program
+export const WEEKLY_WORKOUT_SPLIT = {
+  Saturday: {
+    dayName: 'Leg Day (Saturday)',
+    tag: 'Leg Focus',
+    warmupTitle: 'Leg Day Dynamic Warmup',
+    warmup: [
+      { id: 'leg_w1', name: 'Burpees (30s rest)', reps: '20 reps', rest: 30 },
+      { id: 'leg_w2', name: 'Plank Up Down with Knee Drive (30s rest)', duration: '45 sec', rest: 30 },
+      { id: 'leg_w3', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
+      { id: 'leg_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
+      { id: 'leg_w5', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
+      { id: 'leg_w6', name: 'Standing Lunges', reps: '20 reps' },
+      { id: 'leg_w7', name: 'Deep Air Squats', reps: '20 reps' },
+      { id: 'leg_w8', name: 'Hyperextensions (10 Bodyweight + 10 with 20kg)', reps: '20 reps' }
+    ],
+    mainExercises: [
+      { id: 'sat_m1', name: 'Powerlifting Back Squat', targetSets: 4, targetReps: 6, restSec: 180, note: 'Rest 3 min between sets' },
+      { id: 'sat_m2', name: 'Deep Squat', targetSets: 3, targetReps: 8, restSec: 180, note: 'Rest 3 min' },
+      {
+        id: 'sat_m3',
+        name: 'SUPERSET: Squat Machine + Romanian Deadlift',
+        isSuperset: true,
+        subExercises: ['Squat Machine (10 reps)', 'Romanian Deadlift (10 reps)'],
+        targetSets: 4,
+        restSec: 120,
+        note: 'Rest 2 min between sets'
+      },
+      {
+        id: 'sat_m4',
+        name: 'SUPERSET: Leg Press + Bulgarian Split Squat',
+        isSuperset: true,
+        subExercises: ['Leg Press (12 reps)', 'Bulgarian Split Squat (10 reps/leg)'],
+        targetSets: 3,
+        restSec: 180,
+        note: 'Rest 3 min'
+      }
+    ],
+    cooldown: [
+      { id: 'sat_c1', name: 'Full Leg Stretch & Mobility', duration: '5 min', type: 'stretch' }
+    ]
+  },
+
+  Sunday: {
+    dayName: 'Chest Day (Sunday)',
+    tag: 'Chest & Back',
+    warmupTitle: 'Upper Body & Skill Warmup',
+    warmup: [
+      { id: 'ch_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
+      { id: 'ch_w2', name: '500m Rowing Machine', duration: '500m' },
+      { id: 'ch_w3', name: 'Plank Up Down with Knee Drive', duration: '45 sec', rest: 30 },
+      { id: 'ch_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
+      { id: 'ch_w5', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
+      { id: 'ch_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
+      { id: 'ch_w7', name: 'Handstand Hold / Practice', duration: '2 min' },
+      { id: 'ch_w8', name: 'Gymnastic Ring Work', reps: '6 reps' },
+      { id: 'ch_w9', name: 'Front Lever Hold', duration: '1 min' },
+      { id: 'ch_w10', name: 'L-Sit Hold', duration: '1 min' },
+      { id: 'ch_w11', name: 'High Pulls', reps: '6 reps' },
+      { id: 'ch_w12', name: '1-Arm Push-ups', reps: '6 reps per side' }
+    ],
+    mainExercises: [
+      { id: 'sun_m1', name: 'Weighted Dips', targetSets: 4, targetReps: 8, restSec: 120, note: 'Rest 2 min' },
+      {
+        id: 'sun_m2',
+        name: 'SUPERSET: Flat Bench Press + Supinated Pull-ups (15 reps)',
+        isSuperset: true,
+        subExercises: ['Flat Bench Press (8 reps)', 'Supinated Pull-ups (15 reps)'],
+        targetSets: 4,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
+      { id: 'sun_m3', name: 'Lat Pulldown', targetSets: 4, targetReps: 10, restSec: 120, note: 'Rest 2 min' },
+      { id: 'sun_m4', name: 'Incline Dumbbell Bench Press', targetSets: 3, targetReps: 10, restSec: 180, note: 'Rest 3 min' },
+      { id: 'sun_m5', name: 'Seated Cable Row', targetSets: 3, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
+      { id: 'sun_m6', name: 'Weighted Pull-ups', targetSets: 3, targetReps: 6, restSec: 180, note: 'Rest 3 min' }
+    ],
+    cooldown: [
+      { id: 'sun_c1', name: 'Toes To Bar', reps: '20 reps', targetSets: 3, type: 'abs' },
+      { id: 'sun_c2', name: 'Hanging Windshield Wipers', reps: '6 reps per side', targetSets: 3, type: 'abs' },
+      { id: 'sun_c3', name: "Child's Pose", duration: '1 min', type: 'stretch' },
+      { id: 'sun_c4', name: 'Lying Chest Opener Stretch', duration: '1 min', type: 'stretch' },
+      { id: 'sun_c5', name: 'Cat-Cow Stretch', duration: '30 sec', type: 'stretch' },
+      { id: 'sun_c6', name: 'Thread The Needle Stretch', duration: '30 sec', type: 'stretch' }
+    ]
+  },
+
+  Monday: {
+    dayName: 'Arm Day (Monday)',
+    tag: 'Arms & Shoulders',
+    warmupTitle: 'Upper Body Skill Warmup + Mon/Wed/Fri Cardio',
+    includeMonWedFri: true,
+    warmup: [
+      { id: 'arm_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
+      { id: 'arm_w2', name: '500m Rowing Machine (30s rest)', duration: '500m', rest: 30 },
+      { id: 'arm_w3', name: 'Plank Up Down with Knee Drive', duration: '45 sec', rest: 30 },
+      { id: 'arm_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
+      { id: 'arm_w5', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
+      { id: 'arm_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
+      { id: 'arm_w7', name: 'Handstand Hold', duration: '2 min' },
+      { id: 'arm_w8', name: 'Gymnastic Ring Work', reps: '6 reps' },
+      { id: 'arm_w9', name: 'Front Lever Hold', duration: '1 min' },
+      { id: 'arm_w10', name: 'L-Sit Hold', duration: '1 min' },
+      { id: 'arm_w11', name: 'High Pulls', reps: '6 reps' },
+      { id: 'arm_w12', name: '1-Arm Push-ups', reps: '6 reps' }
+    ],
+    mainExercises: [
+      { id: 'mon_m1', name: 'Dumbbell Shoulder Press', targetSets: 4, targetReps: 10, restSec: 180, note: 'Rest 3 min' },
+      { id: 'mon_m2', name: 'Standing Bicep Curls', targetSets: 4, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
+      {
+        id: 'mon_m3',
+        name: 'SUPERSET: Lying Triceps Extension + Hammer Curls',
+        isSuperset: true,
+        subExercises: ['Lying Triceps Skullcrushers (10 reps)', 'Dumbbell Hammer Curls (10 reps)'],
+        targetSets: 4,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
+      { id: 'mon_m4', name: 'Incline Dumbbell Bicep Curl', targetSets: 3, targetReps: 10, restSec: 120, note: 'Rest 2 min' },
+      { id: 'mon_m5', name: 'Close Grip Bench Press', targetSets: 4, targetReps: 8, restSec: 180, note: 'Rest 3 min' }
+    ],
+    cooldown: [
+      { id: 'mon_c1', name: 'Toes To Bar', reps: '20 reps', targetSets: 3, type: 'abs' },
+      { id: 'mon_c2', name: 'Hanging Windshield Wipers', reps: '6 reps', targetSets: 3, type: 'abs' },
+      { id: 'mon_c3', name: "Child's Pose", duration: '1 min', type: 'stretch' },
+      { id: 'mon_c4', name: 'Lying Chest Opener Stretch', duration: '1 min', type: 'stretch' },
+      { id: 'mon_c5', name: 'Cat-Cow Stretch', duration: '30 sec', type: 'stretch' },
+      { id: 'mon_c6', name: 'Thread The Needle Stretch', duration: '30 sec', type: 'stretch' }
+    ]
+  },
+
+  Tuesday: {
+    dayName: 'Calisthenics Skill Focus (Tuesday)',
+    tag: 'Calisthenics Focus',
+    warmupTitle: 'Bodyweight Skill & Core Warmup',
+    warmup: [
+      { id: 'tue_w1', name: 'Jumping Jacks & Arm Circles', duration: '60 sec' },
+      { id: 'tue_w2', name: 'Plank Up Down with Knee Drive', duration: '45 sec' },
+      { id: 'tue_w3', name: 'Hollow Position + Superman', duration: '60 sec' },
+      { id: 'tue_w4', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' }
+    ],
+    mainExercises: [
+      { id: 'tue_m1', name: 'Handstand Practice / Wall Walks', targetSets: 4, targetReps: 60, restSec: 120, note: 'Focus on balance' },
+      { id: 'tue_m2', name: 'Front Lever Progressions', targetSets: 4, targetReps: 20, restSec: 120, note: 'Hold isometric' },
+      { id: 'tue_m3', name: 'Ring Dips / Muscle-Up Practice', targetSets: 4, targetReps: 6, restSec: 120, note: 'Strict form' },
+      { id: 'tue_m4', name: 'L-Sit Hold / Parallel Bars', targetSets: 4, targetReps: 30, restSec: 90, note: 'Core strength' },
+      { id: 'tue_m5', name: 'High Pulls & Explosive Chin-ups', targetSets: 4, targetReps: 6, restSec: 120, note: 'Explosive power' }
+    ],
+    cooldown: [
+      { id: 'tue_c1', name: 'Full Calisthenics Shoulder & Wrist Stretch', duration: '5 min', type: 'stretch' }
+    ]
+  },
+
+  Wednesday: {
+    dayName: 'Leg Day #2 (Wednesday)',
+    tag: 'Leg Focus #2',
+    warmupTitle: 'Leg Day Warmup + Mon/Wed/Fri Cardio',
+    includeMonWedFri: true,
+    warmup: [
+      { id: 'wed_w1', name: 'Burpees (30s rest)', reps: '20 reps', rest: 30 },
+      { id: 'wed_w2', name: 'Plank Up Down with Knee Drive (30s rest)', duration: '45 sec', rest: 30 },
+      { id: 'wed_w3', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
+      { id: 'wed_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
+      { id: 'wed_w5', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
+      { id: 'wed_w6', name: 'Standing Lunges', reps: '20 reps' },
+      { id: 'wed_w7', name: 'Deep Air Squats', reps: '20 reps' },
+      { id: 'wed_w8', name: 'Hyperextensions (10 Bodyweight + 10 with 20kg)', reps: '20 reps' }
+    ],
+    mainExercises: [
+      { id: 'wed_m1', name: 'Conventional / Sumo Deadlift', targetSets: 4, targetReps: 5, restSec: 180, note: 'Rest 3 min' },
+      { id: 'wed_m2', name: 'Barbell Front Squat', targetSets: 3, targetReps: 8, restSec: 180, note: 'Rest 3 min' },
+      { id: 'wed_m3', name: 'Hack Squat Machine', targetSets: 3, targetReps: 10, restSec: 120, note: 'Rest 2 min' },
+      {
+        id: 'wed_m4',
+        name: 'SUPERSET: Barbell Hip Thrust + Seated Hip Abduction',
+        isSuperset: true,
+        subExercises: ['Barbell Hip Thrust (12 reps)', 'Seated Hip Abduction (15 reps)'],
+        targetSets: 4,
+        restSec: 120,
+        note: 'Rest 2 min'
+      }
+    ],
+    cooldown: [
+      { id: 'wed_c1', name: '5 Min Deep Leg & Glute Stretch', duration: '5 min', type: 'stretch' }
+    ]
+  },
+
+  Thursday: {
+    dayName: 'Arm Day #2 (Thursday)',
+    tag: 'Arms & Shoulders #2',
+    warmupTitle: 'Upper Body Skill Warmup',
+    warmup: [
+      { id: 'thu_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
+      { id: 'thu_w2', name: '500m Rowing Machine', duration: '500m' },
+      { id: 'thu_w3', name: 'Plank Up Down with Knee Drive', duration: '45 sec', rest: 30 },
+      { id: 'thu_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
+      { id: 'thu_w5', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
+      { id: 'thu_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
+      { id: 'thu_w7', name: 'Handstand Hold', duration: '2 min' },
+      { id: 'thu_w8', name: 'Gymnastic Ring Work', reps: '6 reps' },
+      { id: 'thu_w9', name: 'Front Lever Hold', duration: '1 min' },
+      { id: 'thu_w10', name: 'L-Sit Hold', duration: '1 min' },
+      { id: 'thu_w11', name: 'High Pulls', reps: '6 reps' },
+      { id: 'thu_w12', name: '1-Arm Push-ups', reps: '6 reps' }
+    ],
+    mainExercises: [
+      {
+        id: 'thu_m1',
+        name: 'SUPERSET: Dumbbell Lateral Raises + Rope Triceps Pushdown',
+        isSuperset: true,
+        subExercises: ['Dumbbell Lateral Raises (12 reps)', 'Rope Triceps Pushdown (12 reps)'],
+        targetSets: 4,
+        restSec: 120,
+        note: 'Rest 2 min'
+      },
+      { id: 'thu_m2', name: 'Cable Bicep Curl', targetSets: 3, targetReps: 12, restSec: 90, note: 'Rest 90s' },
+      { id: 'thu_m3', name: 'Cable Hammer Curls', targetSets: 4, targetReps: 12, restSec: 90, note: 'Rest 90s' },
+      { id: 'thu_m4', name: 'Reverse Pec Deck (Rear Delt Fly)', targetSets: 4, targetReps: 15, restSec: 90, note: 'Rest 90s' },
+      { id: 'thu_m5', name: 'Weighted Supinated Pull-ups', targetSets: 4, targetReps: 8, restSec: 180, note: 'Rest 3 min' }
+    ],
+    cooldown: [
+      { id: 'thu_c1', name: 'Toes To Bar', reps: '20 reps', targetSets: 3, type: 'abs' },
+      { id: 'thu_c2', name: 'Hanging Windshield Wipers', reps: '6 reps per side', targetSets: 3, type: 'abs' }
+    ]
+  },
+
+  Friday: {
+    dayName: 'Calisthenics & Cardio Day (Friday)',
+    tag: 'Calisthenics & Cardio',
+    warmupTitle: 'Cardio Warmup + Mon/Wed/Fri Routine',
+    includeMonWedFri: true,
+    warmup: [
+      { id: 'fri_w1', name: 'Jumping Jacks & Arm Circles', duration: '60 sec' },
+      { id: 'fri_w2', name: 'Plank Up Down with Knee Drive', duration: '45 sec' },
+      { id: 'fri_w3', name: 'Hollow Position + Superman', duration: '60 sec' }
+    ],
+    mainExercises: [
+      { id: 'fri_m1', name: 'Ring Muscle-Ups / Pull-up Burnout', targetSets: 4, targetReps: 10, restSec: 120, note: 'Max effort' },
+      { id: 'fri_m2', name: 'Weighted Dips / Push-up Ladder', targetSets: 4, targetReps: 15, restSec: 120, note: 'Pec & tricep pump' },
+      { id: 'fri_m3', name: 'Core & Ab Wheel Rollouts', targetSets: 4, targetReps: 15, restSec: 90, note: 'Core bracing' }
+    ],
+    cooldown: [
+      { id: 'fri_c1', name: 'Full Body Mobility & Cooldown Stretch', duration: '5 min', type: 'stretch' }
+    ]
+  }
+};
 
 export const MAX_1RM_TEST_EXERCISES = [
   { id: 'bench', name: 'Bench Press', unit: 'kg/lbs', description: 'Barbell Flat Bench Press 1-Rep Max' },

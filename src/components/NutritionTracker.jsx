@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
-import { Camera, Sparkles, Plus, Trash2, Utensils, Zap, CheckCircle2 } from 'lucide-react';
-import { analyzeFoodPhoto } from '../services/openai';
+import { Camera, Sparkles, Plus, Trash2, Utensils, Edit2, Check, FileText, X } from 'lucide-react';
+import { analyzeFoodPhoto, analyzeFoodText } from '../services/openai';
 
-export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpdateLog }) {
-  const [analyzing, setAnalyzing] = useState(false);
+export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpdateLog, onSaveTargetMacros }) {
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
+  const [analyzingText, setAnalyzingText] = useState(false);
+
   const [selectedMealCategory, setSelectedMealCategory] = useState('Lunch');
+
+  // Text AI Modal State
+  const [showTextModal, setShowTextModal] = useState(false);
+  const [textInput, setTextInput] = useState('');
+
+  // Edit Macro Target Modal State
+  const [showMacroEditor, setShowMacroEditor] = useState(false);
+  const [macroEditData, setMacroEditData] = useState(targetMacros || { calories: 2400, protein: 180, carbs: 240, fat: 70 });
 
   const meals = dailyLog?.meals || [];
   const foodPhotos = dailyLog?.foodPhotos || [];
@@ -19,8 +29,13 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
+  const handleSaveMacroGoals = () => {
+    onSaveTargetMacros(macroEditData);
+    setShowMacroEditor(false);
+  };
+
   const handleAddManualMeal = () => {
-    const name = prompt('Enter Meal Name (e.g., Grilled Chicken Breast & Rice):');
+    const name = prompt('Enter Meal Name (e.g., Grilled Chicken & Quinoa):');
     if (!name) return;
     const cals = parseInt(prompt('Calories (kcal):') || '0', 10);
     const p = parseInt(prompt('Protein (g):') || '0', 10);
@@ -42,6 +57,40 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
     onUpdateLog({ meals: updatedMeals, totalMacros });
   };
 
+  const handleAnalyzeTextMeal = async () => {
+    if (!textInput.trim()) return;
+    if (!apiKey) {
+      alert('Please set your OpenAI API key in Settings to use the AI Text Scanner.');
+      return;
+    }
+
+    setAnalyzingText(true);
+    try {
+      const aiResult = await analyzeFoodText(textInput, apiKey);
+      const newMeal = {
+        id: `meal_aitext_${Date.now()}`,
+        category: selectedMealCategory,
+        name: aiResult.mealName || textInput,
+        calories: aiResult.calories || 0,
+        protein: aiResult.protein || 0,
+        carbs: aiResult.carbs || 0,
+        fat: aiResult.fat || 0,
+        notes: aiResult.notes || '',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      const updatedMeals = [...meals, newMeal];
+      onUpdateLog({ meals: updatedMeals, totalMacros });
+      setShowTextModal(false);
+      setTextInput('');
+      alert(`AI Text Scan Complete! Added ${newMeal.name} (${newMeal.calories} kcal, ${newMeal.protein}g Protein).`);
+    } catch (err) {
+      alert('AI Text Scan Failed: ' + err.message);
+    } finally {
+      setAnalyzingText(false);
+    }
+  };
+
   const handleFoodPhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -54,7 +103,7 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const base64Image = evt.target.result;
-      setAnalyzing(true);
+      setAnalyzingPhoto(true);
       try {
         const aiResult = await analyzeFoodPhoto(base64Image, apiKey);
         const newMeal = {
@@ -74,11 +123,11 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
         const updatedPhotos = [...foodPhotos, { id: `photo_${Date.now()}`, url: base64Image, category: selectedMealCategory }];
 
         onUpdateLog({ meals: updatedMeals, foodPhotos: updatedPhotos, totalMacros });
-        alert(`AI Scan Success! Added ${newMeal.name} (${newMeal.calories} kcal, ${newMeal.protein}g Protein).`);
+        alert(`AI Photo Scan Success! Added ${newMeal.name} (${newMeal.calories} kcal, ${newMeal.protein}g Protein).`);
       } catch (err) {
-        alert('AI Food Scan Failed: ' + err.message);
+        alert('AI Food Photo Scan Failed: ' + err.message);
       } finally {
-        setAnalyzing(false);
+        setAnalyzingPhoto(false);
       }
     };
     reader.readAsDataURL(file);
@@ -98,12 +147,32 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
             <span className="badge badge-emerald"><Utensils size={12} /> MACRO TRACKER</span>
-            <h2 style={{ fontSize: '1.2rem', marginTop: '0.25rem' }}>Daily Food Intake</h2>
+            <h2 style={{ fontSize: '1.2rem', marginTop: '0.25rem' }}>Daily Food & Macros</h2>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-cyan)' }}>
-              {totalMacros.calories} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/ {targetMacros?.calories || 2400} kcal</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-cyan)' }}>
+                {totalMacros.calories} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ {targetMacros?.calories || 2400} kcal</span>
+              </div>
             </div>
+            <button
+              onClick={() => setShowMacroEditor(true)}
+              title="Edit Macro Targets"
+              style={{
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-card)',
+                color: 'var(--primary-cyan)',
+                padding: '0.4rem 0.6rem',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              <Edit2 size={12} /> Goals
+            </button>
           </div>
         </div>
 
@@ -141,19 +210,33 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
         </div>
       </div>
 
-      {/* Action Buttons: Add Meal & AI Photo Scanner */}
-      <div style={{ display: 'flex', gap: '0.75rem' }}>
+      {/* 3 Meal Logging Option Buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
         <label
           className="btn-primary"
-          style={{ flex: 1, cursor: 'pointer', opacity: analyzing ? 0.7 : 1 }}
+          style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer', opacity: analyzingPhoto ? 0.7 : 1, flexDirection: 'column', gap: '0.25rem' }}
         >
-          {analyzing ? <Sparkles className="spin" size={18} /> : <Camera size={18} />}
-          <span>{analyzing ? 'GPT-4o Scanning...' : 'AI Food Scanner'}</span>
-          <input type="file" accept="image/*" onChange={handleFoodPhotoUpload} disabled={analyzing} style={{ display: 'none' }} />
+          {analyzingPhoto ? <Sparkles className="spin" size={16} /> : <Camera size={16} />}
+          <span>Photo AI</span>
+          <input type="file" accept="image/*" onChange={handleFoodPhotoUpload} disabled={analyzingPhoto} style={{ display: 'none' }} />
         </label>
 
-        <button onClick={handleAddManualMeal} className="btn-secondary" style={{ flex: 1 }}>
-          <Plus size={18} /> Manual Log
+        <button
+          onClick={() => setShowTextModal(true)}
+          className="btn-primary"
+          style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem', background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' }}
+        >
+          <FileText size={16} />
+          <span>Text AI</span>
+        </button>
+
+        <button
+          onClick={handleAddManualMeal}
+          className="btn-secondary"
+          style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.25rem' }}
+        >
+          <Plus size={16} />
+          <span>Manual</span>
         </button>
       </div>
 
@@ -180,7 +263,7 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
         ))}
       </div>
 
-      {/* Meal List */}
+      {/* Logged Meal List */}
       <div className="glass-card">
         <h3 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
           Logged Meals ({meals.length})
@@ -188,7 +271,7 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
 
         {meals.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-            No meals logged yet today. Tap <strong>AI Food Scanner</strong> to snap a photo of your dish!
+            No meals logged yet today. Choose <strong>Photo AI</strong>, <strong>Text AI</strong>, or <strong>Manual</strong> above!
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -236,14 +319,96 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
         )}
       </div>
 
-      {/* Daily Food Photo Gallery */}
-      {foodPhotos.length > 0 && (
-        <div className="glass-card">
-          <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Food Photo History</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
-            {foodPhotos.map((p, idx) => (
-              <img key={idx} src={p.url} alt="Meal" style={{ width: '100%', height: '70px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border-card)' }} />
-            ))}
+      {/* AI Text Description Modal */}
+      {showTextModal && (
+        <div className="modal-overlay" onClick={() => setShowTextModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FileText size={20} color="var(--primary-cyan)" />
+                <h3 style={{ fontSize: '1.1rem', margin: 0 }}>AI Meal Text Description</h3>
+              </div>
+              <button onClick={() => setShowTextModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Describe your meal in plain text (e.g. <em>"200g grilled salmon, 1 cup brown rice, 1/2 avocado"</em>). GPT-4o will calculate exact macros automatically!
+            </p>
+
+            <textarea
+              rows={3}
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="e.g. 3 scrambled eggs with 2 slices of whole wheat toast and 1 apple..."
+              className="input-field"
+              style={{ marginBottom: '1rem', resize: 'none' }}
+            />
+
+            <button onClick={handleAnalyzeTextMeal} className="btn-primary" style={{ width: '100%' }} disabled={analyzingText}>
+              {analyzingText ? 'GPT-4o Analyzing Meal...' : 'Calculate Macros with AI'} <Sparkles size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Target Macros Modal */}
+      {showMacroEditor && (
+        <div className="modal-overlay" onClick={() => setShowMacroEditor(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Customize Target Macro Goals</h3>
+              <button onClick={() => setShowMacroEditor(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--primary-cyan)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Target Calories (kcal)</label>
+                <input
+                  type="number"
+                  value={macroEditData.calories}
+                  onChange={(e) => setMacroEditData((prev) => ({ ...prev, calories: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Target Protein (g)</label>
+                <input
+                  type="number"
+                  value={macroEditData.protein}
+                  onChange={(e) => setMacroEditData((prev) => ({ ...prev, protein: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--accent-amber)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Target Carbs (g)</label>
+                <input
+                  type="number"
+                  value={macroEditData.carbs}
+                  onChange={(e) => setMacroEditData((prev) => ({ ...prev, carbs: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--accent-purple)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Target Fat (g)</label>
+                <input
+                  type="number"
+                  value={macroEditData.fat}
+                  onChange={(e) => setMacroEditData((prev) => ({ ...prev, fat: parseInt(e.target.value, 10) || 0 }))}
+                  className="input-field"
+                />
+              </div>
+            </div>
+
+            <button onClick={handleSaveMacroGoals} className="btn-emerald" style={{ width: '100%' }}>
+              Save Custom Macro Targets <Check size={16} />
+            </button>
           </div>
         </div>
       )}

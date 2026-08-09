@@ -122,6 +122,33 @@ Return JSON:
 }
 
 /**
+ * AI Food Text Scanner - GPT-4o Text Analysis
+ */
+export async function analyzeFoodText(textDescription, apiKey) {
+  const messages = [
+    { role: 'system', content: 'You are an expert sports nutritionist AI. Analyze the food text description and calculate macros in JSON.' },
+    {
+      role: 'user',
+      content: `Analyze this meal text description: "${textDescription}"
+Estimate exact total portion size, calories, and macros.
+
+Return JSON:
+{
+  "mealName": "Descriptive meal title",
+  "calories": number,
+  "protein": number (grams),
+  "carbs": number (grams),
+  "fat": number (grams),
+  "confidence": "High" | "Medium" | "Low",
+  "notes": "Brief nutritional breakdown"
+}`
+    }
+  ];
+
+  return callOpenAI({ apiKey, messages, responseFormat: 'json_object', model: 'gpt-4o' });
+}
+
+/**
  * Daily 23:00 AI Summary & Form Analysis with Historical Context Memory
  */
 export async function generateDaily23Summary(dailyLog, historicalMemory, videoFrames, apiKey) {

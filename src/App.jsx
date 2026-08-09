@@ -173,6 +173,13 @@ export default function App() {
     await handleUpdateDailyLog({ weight: w });
   };
 
+  const handleSaveTargetMacros = async (newMacros) => {
+    if (!profile) return;
+    const updatedProfile = { ...profile, targetMacros: newMacros };
+    setProfile(updatedProfile);
+    await saveProfile(updatedProfile);
+  };
+
   const handleSaveSettings = async ({ apiKey: newKey, travelMode: newTravel }) => {
     setApiKey(newKey);
     setTravelMode(newTravel);
@@ -378,6 +385,7 @@ export default function App() {
             targetMacros={targetMacros}
             apiKey={apiKey}
             onUpdateLog={handleUpdateDailyLog}
+            onSaveTargetMacros={handleSaveTargetMacros}
           />
         )}
 
