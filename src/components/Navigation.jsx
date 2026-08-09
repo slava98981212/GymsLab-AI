@@ -1,43 +1,31 @@
 import React from 'react';
-import { LayoutDashboard, Utensils, Dumbbell, TrendingUp, Video, Award, Calendar } from 'lucide-react';
+import { Home, Utensils, Dumbbell, Video, Calendar, Sparkles, TrendingUp, BookOpen, ChefHat } from 'lucide-react';
 
 export default function Navigation({ activeTab, setActiveTab, is1RMDue }) {
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'meals', label: 'Nutrition', icon: Utensils },
+  const navItems = [
+    { id: 'dashboard', label: 'Today', icon: Home },
+    { id: 'meals', label: 'Food Log', icon: Utensils },
+    { id: 'mealplan', label: 'Meal Plan', icon: ChefHat },
     { id: 'workout', label: 'Workout', icon: Dumbbell },
     { id: 'stats', label: 'Stats', icon: TrendingUp },
-    { id: 'videos', label: 'Videos', icon: Video },
-    { id: '1rm', label: '1RM Test', icon: Award, badge: is1RMDue },
-    { id: 'weekly', label: 'Weekly', icon: Calendar }
+    { id: 'weekly', label: 'Review', icon: Calendar }
   ];
 
   return (
     <nav className="bottom-nav">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const isActive = activeTab === tab.id;
+      {navItems.map((item) => {
+        const IconComponent = item.icon;
+        const isActive = activeTab === item.id;
+
         return (
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
             className={`nav-item ${isActive ? 'active' : ''}`}
             style={{ position: 'relative' }}
           >
-            <Icon size={18} />
-            <span style={{ fontSize: '0.65rem' }}>{tab.label}</span>
-            {tab.badge && (
-              <span style={{
-                position: 'absolute',
-                top: '0px',
-                right: '18%',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--primary-cyan)',
-                boxShadow: '0 0 8px var(--primary-cyan)'
-              }} />
-            )}
+            <IconComponent size={20} />
+            <span>{item.label}</span>
           </button>
         );
       })}

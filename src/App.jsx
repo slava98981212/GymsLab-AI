@@ -12,6 +12,7 @@ import SettingsModal from './components/SettingsModal';
 import MaxTest1RMModal from './components/MaxTest1RMModal';
 import MeasurementGuideModal from './components/MeasurementGuideModal';
 import Statistics from './components/Statistics';
+import MealPlanView from './components/MealPlanView';
 
 import {
   getProfile,
@@ -417,7 +418,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: NUTRITION & RECIPES */}
+        {/* TAB 2: NUTRITION & FOOD LOG */}
         {activeTab === 'meals' && (
           <NutritionTracker
             profile={profile}
@@ -426,6 +427,17 @@ export default function App() {
             apiKey={apiKey}
             onUpdateLog={handleUpdateDailyLog}
             onSaveTargetMacros={handleSaveTargetMacros}
+          />
+        )}
+
+        {/* TAB 3: DEDICATED AI MEAL PLAN & RECIPES PAGE */}
+        {activeTab === 'mealplan' && (
+          <MealPlanView
+            profile={profile}
+            targetMacros={targetMacros}
+            apiKey={apiKey}
+            dailyLog={dailyLog}
+            onUpdateLog={handleUpdateDailyLog}
           />
         )}
 

@@ -210,28 +210,33 @@ export default function MealPlannerModal({ profile, targetMacros, apiKey, onAddM
         {/* PROPOSED MEAL PLAN DISPLAY & APPROVAL CONTROLS */}
         {currentProposal && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Approval Status Banner */}
+            {/* PROMINENT APPROVAL STATUS & GLOWING BUTTON BANNER */}
             <div style={{
-              background: isApproved ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-              border: isApproved ? '1px solid var(--accent-emerald)' : '1px solid var(--accent-amber)',
-              borderRadius: '16px',
-              padding: '1rem',
+              background: isApproved ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))' : 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.25))',
+              border: isApproved ? '2px solid var(--accent-emerald)' : '2px solid var(--accent-amber)',
+              borderRadius: '18px',
+              padding: '1.1rem 1.25rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              boxShadow: isApproved ? '0 0 20px rgba(16, 185, 129, 0.3)' : '0 0 20px rgba(245, 158, 11, 0.3)'
             }}>
               <div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isApproved ? 'var(--accent-emerald)' : 'var(--accent-amber)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  {isApproved ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                  {isApproved ? 'Meal Plan Approved for Today ✓' : 'Plan Drafted - Review & Approve Below'}
+                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: isApproved ? 'var(--accent-emerald)' : 'var(--accent-amber)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {isApproved ? <CheckCircle2 size={22} /> : <AlertCircle size={22} />}
+                  {isApproved ? 'MEAL PLAN APPROVED FOR TODAY ✓' : 'STEP 2: REVIEW & APPROVE PLAN'}
                 </div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-                  {isApproved ? 'All meals are logged in your daily nutrition tracker.' : 'Review recipes below or type changes above until you agree!'}
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', margin: '0.25rem 0 0', opacity: 0.9 }}>
+                  {isApproved ? 'Saved in your Meal Plan tab & Daily Food Tracker.' : 'Tap the green Approve button when you agree on this plan!'}
                 </p>
               </div>
 
               {!isApproved && (
-                <button onClick={handleApprovePlan} className="btn-emerald" style={{ padding: '0.6rem 1rem', whiteSpace: 'nowrap' }}>
+                <button
+                  onClick={handleApprovePlan}
+                  className="btn-emerald"
+                  style={{ padding: '0.75rem 1.25rem', fontSize: '0.9rem', fontWeight: 800, whiteSpace: 'nowrap', boxShadow: '0 4px 15px var(--accent-emerald-glow)' }}
+                >
                   ✅ APPROVE PLAN TODAY
                 </button>
               )}
@@ -267,7 +272,7 @@ export default function MealPlannerModal({ profile, targetMacros, apiKey, onAddM
                     </div>
 
                     {isApproved && (
-                      <span className="badge badge-emerald">LOGGED ✓</span>
+                      <span className="badge badge-emerald">SAVED ✓</span>
                     )}
                   </div>
 
@@ -304,8 +309,12 @@ export default function MealPlannerModal({ profile, targetMacros, apiKey, onAddM
             </div>
 
             {!isApproved && (
-              <button onClick={handleApprovePlan} className="btn-emerald" style={{ width: '100%', padding: '0.85rem' }}>
-                ✅ APPROVE & LOG THIS MEAL PLAN FOR TODAY
+              <button
+                onClick={handleApprovePlan}
+                className="btn-emerald"
+                style={{ width: '100%', padding: '1rem', fontSize: '1rem', fontWeight: 800, boxShadow: '0 6px 20px var(--accent-emerald-glow)' }}
+              >
+                ✅ APPROVE & SAVE THIS MEAL PLAN FOR TODAY
               </button>
             )}
           </div>
