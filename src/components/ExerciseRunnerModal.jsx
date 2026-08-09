@@ -39,44 +39,82 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
   const [restSeconds, setRestSeconds] = useState(0);
   const [restActive, setRestActive] = useState(false);
   const [restExpired, setRestExpired] = useState(false);
+  const [restTargetEndMs, setRestTargetEndMs] = useState(null);
 
+  // Exercise Running Duration Clock (Resilient to app switching)
   useEffect(() => {
     if (isCompleted) return;
-    const interval = setInterval(() => {
+    const updateElapsed = () => {
       setElapsedSecs(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
+    };
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 1000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        updateElapsed();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [startedAt, isCompleted]);
 
+  // Rest Countdown Timer (Resilient to app switching & backgrounding)
   useEffect(() => {
     let interval = null;
-    if (restActive && restSeconds > 0) {
-      interval = setInterval(() => {
-        setRestSeconds((prev) => prev - 1);
-      }, 1000);
-    } else if (restSeconds === 0 && restActive) {
-      setRestActive(false);
-      setRestExpired(true);
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.6);
-      } catch (e) {
-        console.log('Audio chime error', e);
-      }
+    if (restActive && restTargetEndMs) {
+      const checkRest = () => {
+        const now = Date.now();
+        const diffSecs = Math.ceil((restTargetEndMs - now) / 1000);
+        if (diffSecs <= 0) {
+          setRestSeconds(0);
+          setRestActive(false);
+          setRestTargetEndMs(null);
+          setRestExpired(true);
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.6);
+          } catch (e) {
+            console.log('Audio chime error', e);
+          }
+        } else {
+          setRestSeconds(diffSecs);
+        }
+      };
+
+      checkRest();
+      interval = setInterval(checkRest, 1000);
+
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible') {
+          checkRest();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibility);
+      };
     }
-    return () => clearInterval(interval);
-  }, [restActive, restSeconds]);
+  }, [restActive, restTargetEndMs]);
 
   const startRestTimer = () => {
     if (isCompleted) return;
+    const targetEnd = Date.now() + restDurationSec * 1000;
+    setRestTargetEndMs(targetEnd);
     setRestExpired(false);
     setRestSeconds(restDurationSec);
     setRestActive(true);

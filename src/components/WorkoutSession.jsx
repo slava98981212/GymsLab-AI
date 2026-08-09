@@ -16,6 +16,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   // Overall Workout Active State & Timer
   const [workoutActive, setWorkoutActive] = useState(dailyLog?.workoutActive || false);
   const [workoutElapsedSecs, setWorkoutElapsedSecs] = useState(dailyLog?.workoutDurationSecs || 0);
+  const [workoutStartMs, setWorkoutStartMs] = useState(dailyLog?.workoutStartMs || null);
 
   // Workout Summary Modal State
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -44,74 +45,116 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   // Exercise Runner Modal Focus Mode State
   const [activeRunnerExercise, setActiveRunnerExercise] = useState(null);
 
-  // Rest Timer State
+  // Rest Timer State & Target End Timestamp
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [restTimerExpired, setRestTimerExpired] = useState(false);
+  const [restTargetEndMs, setRestTargetEndMs] = useState(null);
 
   // Saved Past Workouts for Today
   const savedWorkouts = dailyLog?.savedWorkouts || [];
 
-  // Overall Workout Duration Clock Effect
+  // Timestamp-based Overall Workout Duration Clock Effect (Resilient to app switching & backgrounding)
   useEffect(() => {
     let interval = null;
     if (workoutActive) {
-      interval = setInterval(() => {
-        setWorkoutElapsedSecs((prev) => {
-          const next = prev + 1;
-          if (next % 5 === 0 && !activeRunnerExercise) {
-            onUpdateLog({ workoutDurationSecs: next, workoutActive: true });
-          }
-          return next;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [workoutActive, activeRunnerExercise]);
+      const updateDuration = () => {
+        let startMs = workoutStartMs;
+        if (!startMs) {
+          startMs = Date.now() - (workoutElapsedSecs * 1000);
+          setWorkoutStartMs(startMs);
+        }
+        const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+        setWorkoutElapsedSecs(elapsed);
+        if (elapsed % 5 === 0 && !activeRunnerExercise) {
+          onUpdateLog({ workoutDurationSecs: elapsed, workoutActive: true, workoutStartMs: startMs });
+        }
+      };
 
-  // Rest Timer Countdown Effect
+      updateDuration();
+      interval = setInterval(updateDuration, 1000);
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          updateDuration();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }
+  }, [workoutActive, workoutStartMs, activeRunnerExercise]);
+
+  // Timestamp-based Rest Timer Countdown Effect (Resilient to app switching & backgrounding)
   useEffect(() => {
     let interval = null;
-    if (timerActive && timerSeconds > 0) {
-      interval = setInterval(() => {
-        setTimerSeconds((prev) => prev - 1);
-      }, 1000);
-    } else if (timerSeconds === 0 && timerActive) {
-      setTimerActive(false);
-      setRestTimerExpired(true);
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.setValueAtTime(0.4, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.6);
-      } catch (e) {
-        console.log('Audio chime error', e);
-      }
+    if (timerActive && restTargetEndMs) {
+      const checkRestTimer = () => {
+        const now = Date.now();
+        const diffSecs = Math.ceil((restTargetEndMs - now) / 1000);
+        if (diffSecs <= 0) {
+          setTimerSeconds(0);
+          setTimerActive(false);
+          setRestTargetEndMs(null);
+          setRestTimerExpired(true);
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.4, ctx.currentTime);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.6);
+          } catch (e) {
+            console.log('Audio chime error', e);
+          }
+        } else {
+          setTimerSeconds(diffSecs);
+        }
+      };
+
+      checkRestTimer();
+      interval = setInterval(checkRestTimer, 1000);
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          checkRestTimer();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
-    return () => clearInterval(interval);
-  }, [timerActive, timerSeconds]);
+  }, [timerActive, restTargetEndMs]);
 
   const handleStartWorkout = () => {
     setWorkoutActive(true);
     const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
+    const startMs = Date.now() - (existingSecs * 1000);
+    setWorkoutStartMs(startMs);
     setWorkoutElapsedSecs(existingSecs);
-    onUpdateLog({ workoutActive: true, workoutDurationSecs: existingSecs });
+    onUpdateLog({ workoutActive: true, workoutDurationSecs: existingSecs, workoutStartMs: startMs });
   };
 
   const handlePauseWorkout = () => {
     setWorkoutActive(false);
-    onUpdateLog({ workoutActive: false, workoutDurationSecs: workoutElapsedSecs });
+    onUpdateLog({ workoutActive: false, workoutDurationSecs: workoutElapsedSecs, workoutStartMs: null });
   };
 
   const handleResumeWorkout = () => {
     setWorkoutActive(true);
-    onUpdateLog({ workoutActive: true, workoutDurationSecs: workoutElapsedSecs });
+    const startMs = Date.now() - (workoutElapsedSecs * 1000);
+    setWorkoutStartMs(startMs);
+    onUpdateLog({ workoutActive: true, workoutDurationSecs: workoutElapsedSecs, workoutStartMs: startMs });
   };
 
   const handleFinishWorkout = () => {
@@ -176,9 +219,12 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   };
 
   const startRestTimer = (secs) => {
-    if (!secs) return;
+    if (!secs || secs <= 0) return;
+    const targetEnd = Date.now() + secs * 1000;
+    setRestTargetEndMs(targetEnd);
     setTimerSeconds(secs);
     setTimerActive(true);
+    setRestTimerExpired(false);
   };
 
   const getPreviousLogForExercise = (exerciseId, exerciseName) => {
