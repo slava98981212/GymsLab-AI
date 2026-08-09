@@ -908,13 +908,16 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
               )}
 
               {/* Active Logged Exercises List with Edit & Double-Check Delete */}
-              {exercises.length === 0 ? (
+              {!Array.isArray(exercises) || exercises.length === 0 ? (
                 <div className="glass-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
                   Tap <strong>Start</strong> on any exercise preset above to begin logging sets & weight!
                 </div>
               ) : (
-                exercises.map((ex, exIdx) => {
+                exercises.filter(Boolean).map((ex, exIdx) => {
+                  if (!ex || typeof ex !== 'object') return null;
                   const pastRecord = getPreviousLogForExercise(ex.exerciseId, ex.name);
+                  const setsList = Array.isArray(ex.sets) ? ex.sets : [];
+
                   return (
                     <div
                       key={exIdx}
@@ -956,7 +959,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {ex.sets.map((set, setIdx) => {
+                        {setsList.map((set, setIdx) => {
                           const oneRepMax = Math.round((Number(set.weight) || 0) * (1 + (Number(set.reps) || 0) / 30));
                           return (
                             <div
