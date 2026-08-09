@@ -7,12 +7,32 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
   const [travelState, setTravelState] = useState(travelMode || false);
 
   // Macro Target Editor state in Settings
-  const [macroGoals, setMacroGoals] = useState(targetMacros || { calories: 2400, protein: 180, carbs: 240, fat: 70 });
+  const [macroGoals, setMacroGoals] = useState({
+    calories: targetMacros?.calories ?? 2400,
+    protein: targetMacros?.protein ?? 180,
+    carbs: targetMacros?.carbs ?? 240,
+    fat: targetMacros?.fat ?? 70
+  });
+
   const [showPlannerModal, setShowPlannerModal] = useState(false);
+
+  const handleMacroChange = (field, valStr) => {
+    if (valStr === '') {
+      setMacroGoals((prev) => ({ ...prev, [field]: '' }));
+      return;
+    }
+    const num = parseInt(valStr, 10);
+    setMacroGoals((prev) => ({ ...prev, [field]: isNaN(num) ? '' : num }));
+  };
 
   const handleSave = () => {
     onSaveSettings({ apiKey: keyInput, travelMode: travelState });
-    onSaveTargetMacros(macroGoals);
+    onSaveTargetMacros({
+      calories: Number(macroGoals.calories) || 2400,
+      protein: Number(macroGoals.protein) || 180,
+      carbs: Number(macroGoals.carbs) || 240,
+      fat: Number(macroGoals.fat) || 70
+    });
     onClose();
   };
 
@@ -44,7 +64,8 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
                 <input
                   type="number"
                   value={macroGoals.calories}
-                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, calories: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => handleMacroChange('calories', e.target.value)}
                   className="input-field"
                 />
               </div>
@@ -54,7 +75,8 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
                 <input
                   type="number"
                   value={macroGoals.protein}
-                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, protein: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => handleMacroChange('protein', e.target.value)}
                   className="input-field"
                 />
               </div>
@@ -64,7 +86,8 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
                 <input
                   type="number"
                   value={macroGoals.carbs}
-                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, carbs: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => handleMacroChange('carbs', e.target.value)}
                   className="input-field"
                 />
               </div>
@@ -74,7 +97,8 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
                 <input
                   type="number"
                   value={macroGoals.fat}
-                  onChange={(e) => setMacroGoals((prev) => ({ ...prev, fat: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => handleMacroChange('fat', e.target.value)}
                   className="input-field"
                 />
               </div>
@@ -88,7 +112,7 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
                 <ChefHat size={18} /> AI Meal Plan & Recipe Generator
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem', margin: 0 }}>
-                Specify meals/day, food requests, and meal times (07:00 AM - 22:00 PM). Includes mandatory Creatine (5g) & Whey Protein.
+                Specify 3-8 meals/day, food requests, and meal times (07:00 AM - 22:00 PM). Includes mandatory Creatine (5g) & Whey Protein.
               </p>
             </div>
 
@@ -186,7 +210,12 @@ export default function SettingsModal({ apiKey, travelMode, targetMacros, onSave
         {/* AI Meal Planner Modal from Settings */}
         {showPlannerModal && (
           <MealPlannerModal
-            targetMacros={macroGoals}
+            targetMacros={{
+              calories: Number(macroGoals.calories) || 2400,
+              protein: Number(macroGoals.protein) || 180,
+              carbs: Number(macroGoals.carbs) || 240,
+              fat: Number(macroGoals.fat) || 70
+            }}
             apiKey={apiKey}
             onAddMealToLog={() => {}}
             onClose={() => setShowPlannerModal(false)}

@@ -553,7 +553,8 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
                 <input
                   type="number"
                   value={editingMeal.calories}
-                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, calories: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, calories: e.target.value === '' ? '' : parseInt(e.target.value, 10) }))}
                   className="input-field"
                 />
               </div>
@@ -563,7 +564,8 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
                 <input
                   type="number"
                   value={editingMeal.protein}
-                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, protein: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, protein: e.target.value === '' ? '' : parseInt(e.target.value, 10) }))}
                   className="input-field"
                 />
               </div>
@@ -573,7 +575,8 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
                 <input
                   type="number"
                   value={editingMeal.carbs}
-                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, carbs: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, carbs: e.target.value === '' ? '' : parseInt(e.target.value, 10) }))}
                   className="input-field"
                 />
               </div>
@@ -583,7 +586,8 @@ export default function NutritionTracker({ dailyLog, targetMacros, apiKey, onUpd
                 <input
                   type="number"
                   value={editingMeal.fat}
-                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, fat: parseInt(e.target.value, 10) || 0 }))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setEditingMeal((prev) => ({ ...prev, fat: e.target.value === '' ? '' : parseInt(e.target.value, 10) }))}
                   className="input-field"
                 />
               </div>
