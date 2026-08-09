@@ -74,6 +74,8 @@ export default function MealPlannerModal({ targetMacros, apiKey, onAddMealToLog,
                 <option value={4}>4 Meals / Day</option>
                 <option value={5}>5 Meals / Day</option>
                 <option value={6}>6 Meals / Day</option>
+                <option value={7}>7 Meals / Day</option>
+                <option value={8}>8 Meals / Day</option>
               </select>
             </div>
 
