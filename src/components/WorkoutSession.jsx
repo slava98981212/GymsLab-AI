@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateCcw, HeartPulse, Sparkles, Calendar, Zap, Layers, History, FlameKindling } from 'lucide-react';
 import { WEEKLY_WORKOUT_SPLIT, MON_WED_FRI_ROUTINE, PRESET_EXERCISES } from '../utils/constants';
+import ExerciseRunnerModal from './ExerciseRunnerModal';
 
 export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -30,6 +31,9 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   // Main Exercises & Sets state
   const exercises = dailyLog?.exercises || [];
   const [selectedPresetId, setSelectedPresetId] = useState(PRESET_EXERCISES[0].id);
+
+  // Exercise Runner Modal Focus Mode State
+  const [activeRunnerExIdx, setActiveRunnerExIdx] = useState(null);
 
   // Rest Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -68,10 +72,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     setTimerActive(true);
   };
 
-  // Helper to find previous exercise weight/reps from historical logs
   const getPreviousLogForExercise = (exerciseId, exerciseName) => {
     if (!allDailyLogs || allDailyLogs.length === 0) return null;
-    // Look through past daily logs (excluding today)
     for (let i = allDailyLogs.length - 1; i >= 0; i--) {
       const pastLog = allDailyLogs[i];
       if (pastLog.date === dailyLog.date) continue;
@@ -119,7 +121,6 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     const targetSetsCount = progEx.targetSets || 4;
     const initialSets = [];
 
-    // Find previous weight if available
     const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
     let defaultWeight = 60;
     if (pastRecord) {
@@ -142,6 +143,9 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         sets: initialSets
       });
       onUpdateLog({ exercises: updatedExercises });
+      setActiveRunnerExIdx(updatedExercises.length - 1);
+    } else {
+      setActiveRunnerExIdx(existingIdx);
     }
   };
 
@@ -161,6 +165,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
     if (existingIdx >= 0) {
       updatedExercises[existingIdx].sets.push(newSet);
+      onUpdateLog({ exercises: updatedExercises });
+      setActiveRunnerExIdx(existingIdx);
     } else {
       updatedExercises.push({
         exerciseId: exObj.id,
@@ -168,8 +174,15 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         restSec: 120,
         sets: [newSet]
       });
+      onUpdateLog({ exercises: updatedExercises });
+      setActiveRunnerExIdx(updatedExercises.length - 1);
     }
+  };
 
+  const handleSaveSetsFromRunner = (updatedSets) => {
+    if (activeRunnerExIdx === null) return;
+    const updatedExercises = JSON.parse(JSON.stringify(exercises));
+    updatedExercises[activeRunnerExIdx].sets = updatedSets;
     onUpdateLog({ exercises: updatedExercises });
   };
 
@@ -520,7 +533,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
           {/* Preset Exercises Picker for Current Day */}
           <div className="glass-card">
             <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Layers size={16} /> Presets for {selectedDay}
+              <Layers size={16} /> Presets for {selectedDay} (Tap to Open Exercise)
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -531,6 +544,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                 return (
                   <div
                     key={progEx.id}
+                    onClick={() => handleAddProgramExercise(progEx)}
                     style={{
                       background: 'rgba(2, 6, 23, 0.6)',
                       border: progEx.isSuperset ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-card)',
@@ -538,7 +552,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                       padding: '0.75rem 1rem',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
+                      cursor: 'pointer'
                     }}
                   >
                     <div>
@@ -561,12 +576,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                     </div>
 
                     <button
-                      onClick={() => handleAddProgramExercise(progEx)}
-                      disabled={isLoaded}
-                      className={isLoaded ? 'btn-secondary' : 'btn-primary'}
+                      className={isLoaded ? 'btn-emerald' : 'btn-primary'}
                       style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                     >
-                      {isLoaded ? 'Loaded ✓' : '+ Add Exercise'}
+                      {isLoaded ? 'Open Focus' : 'Start'} <Play size={12} />
                     </button>
                   </div>
                 );
@@ -587,7 +600,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
               </select>
 
               <button onClick={handleAddCustomPreset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>
-                <Plus size={16} /> Custom Set
+                <Plus size={16} /> Open Exercise
               </button>
             </div>
           </div>
@@ -618,7 +631,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
           {/* Active Logged Exercises List */}
           {exercises.length === 0 ? (
             <div className="glass-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-              Tap <strong>+ Add Exercise</strong> on any preset above to begin logging sets & weight!
+              Tap <strong>Start</strong> on any exercise above to launch focus mode and log sets & weight!
             </div>
           ) : (
             exercises.map((ex, exIdx) => {
@@ -645,12 +658,21 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                       )}
                     </div>
 
-                    <button
-                      onClick={() => handleDeleteExercise(exIdx)}
-                      style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '0.75rem' }}
-                    >
-                      Remove
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <button
+                        onClick={() => setActiveRunnerExIdx(exIdx)}
+                        className="btn-primary"
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
+                      >
+                        Run Focus Mode <Play size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteExercise(exIdx)}
+                        style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '0.75rem' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -767,6 +789,16 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
             })}
           </div>
         </div>
+      )}
+
+      {/* FOCUS EXERCISE RUNNER MODAL */}
+      {activeRunnerExIdx !== null && exercises[activeRunnerExIdx] && (
+        <ExerciseRunnerModal
+          exercise={exercises[activeRunnerExIdx]}
+          pastRecord={getPreviousLogForExercise(exercises[activeRunnerExIdx].exerciseId, exercises[activeRunnerExIdx].name)}
+          onSaveExerciseSets={handleSaveSetsFromRunner}
+          onClose={() => setActiveRunnerExIdx(null)}
+        />
       )}
     </div>
   );
