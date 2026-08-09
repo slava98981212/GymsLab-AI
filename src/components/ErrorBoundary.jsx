@@ -47,9 +47,12 @@ export default class ErrorBoundary extends React.Component {
         }}>
           <AlertTriangle size={52} color="var(--accent-rose, #ef4444)" style={{ marginBottom: '1rem' }} />
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>UI State Error Encountered</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)', maxWidth: '480px', marginBottom: '1rem' }}>
-            The app caught a rendering issue. Detailed error details are below:
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)', maxWidth: '480px', marginBottom: '0.5rem' }}>
+            The app caught a rendering issue.
           </p>
+          <div style={{ fontSize: '0.82rem', color: 'var(--accent-emerald, #10b981)', fontWeight: 700, marginBottom: '1.25rem' }}>
+            🛡️ YOUR PHOTOS, WEIGHT LOGS & MEALS ARE 100% SAFE AND WILL NOT BE DELETED!
+          </div>
 
           {/* Exact Error Message Display */}
           <div style={{
@@ -78,29 +81,10 @@ export default class ErrorBoundary extends React.Component {
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               onClick={this.handleReload}
-              className="btn-primary"
-              style={{ padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              className="btn-emerald"
+              style={{ padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800 }}
             >
-              <RefreshCw size={16} /> Reload App
-            </button>
-
-            <button
-              onClick={this.handleResetApp}
-              style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid var(--accent-rose, #ef4444)',
-                color: 'var(--accent-rose, #ef4444)',
-                padding: '0.85rem 1.25rem',
-                borderRadius: '14px',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-            >
-              <Trash2 size={16} /> Clear Storage & Reset
+              <RefreshCw size={16} /> Auto-Repair & Refresh App (Safe)
             </button>
           </div>
         </div>

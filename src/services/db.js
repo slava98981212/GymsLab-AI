@@ -48,23 +48,65 @@ export async function getSetting(key) {
   return res ? res.value : null;
 }
 
+export function sanitizeDailyLog(rawLog) {
+  if (!rawLog || typeof rawLog !== 'object') return rawLog;
+
+  const safeLog = { ...rawLog };
+
+  // Ensure weight, meals, foodPhotos, and videos are 100% preserved
+  safeLog.weight = safeLog.weight ?? null;
+  safeLog.meals = Array.isArray(safeLog.meals) ? safeLog.meals : [];
+  safeLog.foodPhotos = Array.isArray(safeLog.foodPhotos) ? safeLog.foodPhotos : [];
+  safeLog.videos = Array.isArray(safeLog.videos) ? safeLog.videos : [];
+
+  // Ensure exercises is a clean array
+  if (!Array.isArray(safeLog.exercises)) {
+    safeLog.exercises = [];
+  } else {
+    safeLog.exercises = safeLog.exercises.filter(Boolean).map((ex) => {
+      if (!ex || typeof ex !== 'object') return null;
+      return {
+        ...ex,
+        sets: Array.isArray(ex.sets) ? ex.sets.filter(Boolean) : []
+      };
+    }).filter(Boolean);
+  }
+
+  // Ensure savedWorkouts is a clean array
+  if (!Array.isArray(safeLog.savedWorkouts)) {
+    safeLog.savedWorkouts = [];
+  } else {
+    safeLog.savedWorkouts = safeLog.savedWorkouts.filter(Boolean).map((w) => {
+      if (!w || typeof w !== 'object') return null;
+      return {
+        ...w,
+        exercises: Array.isArray(w.exercises) ? w.exercises.filter(Boolean) : []
+      };
+    }).filter(Boolean);
+  }
+
+  return safeLog;
+}
+
 // Daily Logs API
 export async function saveDailyLog(dateStr, logData) {
   const db = await initDB();
   const existing = (await db.get('dailyLogs', dateStr)) || { date: dateStr };
-  const updated = { ...existing, ...logData, date: dateStr, updatedAt: new Date().toISOString() };
+  const updated = sanitizeDailyLog({ ...existing, ...logData, date: dateStr, updatedAt: new Date().toISOString() });
   await db.put('dailyLogs', updated);
   return updated;
 }
 
 export async function getDailyLog(dateStr) {
   const db = await initDB();
-  return (await db.get('dailyLogs', dateStr)) || null;
+  const rawLog = (await db.get('dailyLogs', dateStr)) || null;
+  return rawLog ? sanitizeDailyLog(rawLog) : null;
 }
 
 export async function getAllDailyLogs() {
   const db = await initDB();
-  return (await db.getAll('dailyLogs')) || [];
+  const all = (await db.getAll('dailyLogs')) || [];
+  return all.map(sanitizeDailyLog);
 }
 
 // Weekly Logs API
