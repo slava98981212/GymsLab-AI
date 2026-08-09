@@ -23,6 +23,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
   // Delete Confirmation Modal State
   const [deletingExIdx, setDeletingExIdx] = useState(null);
+  const [editingWorkoutObj, setEditingWorkoutObj] = useState(null);
+  const [deletingWorkoutId, setDeletingWorkoutId] = useState(null);
 
   // Special Checkboxes State
   const calisthenicsCompleted = dailyLog?.calisthenicsCompleted || false;
@@ -134,6 +136,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
     const newCompletedWorkout = {
       workoutId: `workout_${Date.now()}`,
+      workoutName: `Workout #${savedWorkouts.length + 1}`,
       dayName: currentDayProgram.dayName,
       date: dailyLog.date,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -152,9 +155,24 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     onUpdateLog({
       workoutActive: false,
       workoutDurationSecs: 0,
+      exercises: [],
       savedWorkouts: updatedSavedWorkouts,
       workoutSummary: newCompletedWorkout
     });
+
+    setWorkoutElapsedSecs(0);
+  };
+
+  const handleDeleteSavedWorkout = (workoutIdOrIdx) => {
+    setDeletingWorkoutId(workoutIdOrIdx);
+  };
+
+  const confirmDeleteSavedWorkout = () => {
+    if (deletingWorkoutId === null) return;
+    const updated = savedWorkouts.filter((w, i) => (w.workoutId ? w.workoutId !== deletingWorkoutId : i !== deletingWorkoutId));
+    onUpdateLog({ savedWorkouts: updated });
+    setDeletingWorkoutId(null);
+    setEditingWorkoutObj(null);
   };
 
   const startRestTimer = (secs) => {
@@ -394,20 +412,68 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
             </div>
           )}
 
-          {/* Saved Completed Workouts for Today */}
-          {savedWorkouts.length > 0 && (
-            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '14px', padding: '0.85rem', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-emerald)', marginBottom: '0.35rem' }}>
-                ✓ Completed Workouts Today ({savedWorkouts.length}):
-              </div>
+          {/* Saved / Active Completed Workout Session Objects List for Today */}
+          <div style={{ background: 'rgba(2, 6, 23, 0.7)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '0.85rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>🏋️ TODAY'S WORKOUT OBJECTS ({savedWorkouts.length + (workoutActive || workoutElapsedSecs > 0 ? 1 : 0)}):</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Tap to Edit or Review</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {/* Active Session Object */}
+              {(workoutActive || workoutElapsedSecs > 0) && (
+                <div style={{ background: 'rgba(6, 182, 212, 0.15)', border: '1px solid var(--primary-cyan)', borderRadius: '12px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-cyan)' }}>
+                      🏋️ Workout #{savedWorkouts.length + 1} (Active 🟢)
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      ⏱️ {formatHMS(workoutElapsedSecs)} | {exercises.length} exercises logged
+                    </div>
+                  </div>
+                  <span className="badge badge-cyan">IN PROGRESS</span>
+                </div>
+              )}
+
+              {/* Saved Workout Objects List */}
               {savedWorkouts.map((w, idx) => (
-                <div key={idx} style={{ fontSize: '0.75rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
-                  <span>{w.dayName} ({w.timestamp})</span>
-                  <span>⏱️ {formatHMS(w.durationSecs)} | 🏋️ {w.totalVolume}kg</span>
+                <div key={w.workoutId || idx} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-card)', borderRadius: '12px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      🏋️ {w.workoutName || `Workout #${idx + 1}`} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({w.timestamp})</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      ⏱️ {formatHMS(w.durationSecs)} | 🏋️ {w.totalVolume}kg | {w.exercises?.length || 0} exercises
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setEditingWorkoutObj(w)}
+                      className="btn-primary"
+                      style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                    >
+                      Edit / Review <Edit2 size={12} />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteSavedWorkout(w.workoutId || idx)}
+                      style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '0.25rem' }}
+                      title="Delete Workout Session"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
+
+              {savedWorkouts.length === 0 && !workoutActive && workoutElapsedSecs === 0 && (
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '0.4rem' }}>
+                  No workout objects recorded yet today. Click <strong>Start Workout Session</strong> below!
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* LARGE PROMINENT START WORKOUT BUTTON */}
           <button
@@ -415,7 +481,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
             className="btn-emerald"
             style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', boxShadow: '0 6px 20px var(--accent-emerald-glow)' }}
           >
-            🚀 START WORKOUT SESSION <ArrowRight size={20} />
+            🚀 START {savedWorkouts.length > 0 ? `WORKOUT #${savedWorkouts.length + 1}` : 'WORKOUT SESSION'} <ArrowRight size={20} />
           </button>
         </div>
       ) : (
@@ -1042,7 +1108,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         </div>
       )}
 
-      {/* DOUBLE-CHECK DELETE CONFIRMATION MODAL */}
+      {/* DOUBLE-CHECK DELETE EXERCISE CONFIRMATION MODAL */}
       {deletingExIdx !== null && exercises[deletingExIdx] && (
         <div className="modal-overlay" onClick={() => setDeletingExIdx(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', textAlign: 'center' }}>
@@ -1061,6 +1127,99 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                 style={{ flex: 1, background: 'var(--accent-rose)', border: 'none', color: '#fff', padding: '0.85rem', borderRadius: '14px', fontWeight: 700, cursor: 'pointer' }}
               >
                 Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WORKOUT OBJECT REVIEW & EDITOR MODAL */}
+      {editingWorkoutObj && (
+        <div className="modal-overlay" onClick={() => setEditingWorkoutObj(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <span className="badge badge-cyan">{editingWorkoutObj.dayName} • {editingWorkoutObj.timestamp}</span>
+                <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0' }}>{editingWorkoutObj.workoutName || 'Workout Object Details'}</h2>
+              </div>
+              <button onClick={() => setEditingWorkoutObj(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-card)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>⏱️ Duration</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-cyan)' }}>{formatHMS(editingWorkoutObj.durationSecs)}</div>
+              </div>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-card)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>🏋️ Total Volume</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-emerald)' }}>{editingWorkoutObj.totalVolume} kg</div>
+              </div>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-card)' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>🔢 Sets / Reps</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-amber)' }}>{editingWorkoutObj.totalSets}s / {editingWorkoutObj.totalReps}r</div>
+              </div>
+            </div>
+
+            {/* Exercises & Sets Review List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '350px', overflowY: 'auto', marginBottom: '1.25rem' }}>
+              {editingWorkoutObj.exercises && editingWorkoutObj.exercises.length > 0 ? (
+                editingWorkoutObj.exercises.map((ex, exIdx) => (
+                  <div key={exIdx} style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '0.85rem' }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                      • {ex.name}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {ex.sets?.map((s, sIdx) => (
+                        <div key={sIdx} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '0.35rem 0.6rem', borderRadius: '8px' }}>
+                          <span>Set {s.setNum}: {s.weight} kg × {s.reps} reps</span>
+                          <span style={{ color: s.completed ? 'var(--accent-emerald)' : 'var(--text-dim)', fontWeight: 700 }}>{s.completed ? 'DONE ✓' : 'LOGGED'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-dim)', padding: '1rem' }}>No exercises recorded in this session.</div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => handleDeleteSavedWorkout(editingWorkoutObj.workoutId)}
+                style={{ flex: 1, background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--accent-rose)', color: 'var(--accent-rose)', padding: '0.75rem', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Delete Session
+              </button>
+              <button onClick={() => setEditingWorkoutObj(null)} className="btn-emerald" style={{ flex: 2 }}>
+                Done Reviewing <Check size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DOUBLE-CHECK DELETE WORKOUT SESSION MODAL */}
+      {deletingWorkoutId !== null && (
+        <div className="modal-overlay" onClick={() => setDeletingWorkoutId(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', textAlign: 'center' }}>
+            <AlertTriangle size={36} color="var(--accent-rose)" style={{ marginBottom: '0.75rem' }} />
+            <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Delete Workout Session?</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Are you sure you want to delete this recorded workout session object? This action cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setDeletingWorkoutId(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteSavedWorkout}
+                style={{ flex: 1, background: 'var(--accent-rose)', border: 'none', color: '#fff', padding: '0.85rem', borderRadius: '14px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Yes, Delete Session
               </button>
             </div>
           </div>
