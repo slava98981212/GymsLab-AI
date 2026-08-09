@@ -1,24 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, CheckSquare, Square, Timer, Check, X, History, Dumbbell, Award, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckSquare, Square, Timer, Check, X, History, Dumbbell, Award, ArrowRight, CheckCircle2, Layers } from 'lucide-react';
 
 export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerciseSets, onClose }) {
+  const isSuperset = exercise.isSuperset || (exercise.subExercises && exercise.subExercises.length > 0);
+  const subA = exercise.subExercises && exercise.subExercises[0] ? exercise.subExercises[0] : 'Movement A';
+  const subB = exercise.subExercises && exercise.subExercises[1] ? exercise.subExercises[1] : 'Movement B';
+
+  const defaultSets = isSuperset
+    ? [
+        { setNum: 1, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
+        { setNum: 2, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
+        { setNum: 3, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
+        { setNum: 4, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false }
+      ]
+    : [
+        { setNum: 1, weight: 60, reps: 10, completed: false },
+        { setNum: 2, weight: 60, reps: 10, completed: false },
+        { setNum: 3, weight: 60, reps: 10, completed: false },
+        { setNum: 4, weight: 60, reps: 10, completed: false }
+      ];
+
   const [sets, setSets] = useState(
-    exercise.sets && exercise.sets.length > 0
-      ? exercise.sets
-      : [
-          { setNum: 1, weight: 60, reps: 10, completed: false },
-          { setNum: 2, weight: 60, reps: 10, completed: false },
-          { setNum: 3, weight: 60, reps: 10, completed: false },
-          { setNum: 4, weight: 60, reps: 10, completed: false }
-        ]
+    exercise.sets && exercise.sets.length > 0 ? exercise.sets : defaultSets
   );
 
   const isCompleted = exercise.completed || false;
-
-  // Background-Persistent Start Timestamp (only if not completed)
   const [startedAt] = useState(exercise.startedAt || Date.now());
 
-  // Frozen Duration for completed exercise vs live running duration for active exercise
   const [elapsedSecs, setElapsedSecs] = useState(() => {
     if (isCompleted) {
       return exercise.durationSecs || 0;
@@ -26,22 +34,18 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     return Math.floor((Date.now() - startedAt) / 1000);
   });
 
-  // Rest Timer State
   const restDurationSec = exercise.restSec || 120;
   const [restSeconds, setRestSeconds] = useState(0);
   const [restActive, setRestActive] = useState(false);
 
-  // Persistent Real-Time Elapsed Timer Effect (Only runs if exercise is NOT yet completed!)
   useEffect(() => {
-    if (isCompleted) return; // DO NOT RESTART TIMER IF EXERCISE IS ALREADY FINISHED/DONE!
-
+    if (isCompleted) return;
     const interval = setInterval(() => {
       setElapsedSecs(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
     return () => clearInterval(interval);
   }, [startedAt, isCompleted]);
 
-  // Rest Timer Effect
   useEffect(() => {
     let interval = null;
     if (restActive && restSeconds > 0) {
@@ -74,7 +78,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     setRestActive(true);
   };
 
-  const handleUpdateSet = (idx, field, val) => {
+  const handleUpdateNormalSet = (idx, field, val) => {
     const updated = [...sets];
     updated[idx][field] = val;
     setSets(updated);
@@ -84,12 +88,41 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     }
   };
 
+  const handleUpdateSuperset = (idx, field, val) => {
+    const updated = [...sets];
+    updated[idx][field] = val;
+    setSets(updated);
+
+    if ((field === 'exAChecked' || field === 'exBChecked') && val === true && !isCompleted) {
+      // If both exercises in pair checked, trigger rest!
+      if (updated[idx].exAChecked && updated[idx].exBChecked) {
+        startRestTimer();
+      }
+    }
+  };
+
   const handleAddSet = () => {
-    const lastSet = sets[sets.length - 1] || { weight: 60, reps: 10 };
-    setSets([
-      ...sets,
-      { setNum: sets.length + 1, weight: lastSet.weight, reps: lastSet.reps, completed: true }
-    ]);
+    if (isSuperset) {
+      const last = sets[sets.length - 1] || { exAWeight: 60, exAReps: 8, exBWeight: 0, exBReps: 10 };
+      setSets([
+        ...sets,
+        {
+          setNum: sets.length + 1,
+          exAWeight: last.exAWeight,
+          exAReps: last.exAReps,
+          exAChecked: false,
+          exBWeight: last.exBWeight,
+          exBReps: last.exBReps,
+          exBChecked: false
+        }
+      ]);
+    } else {
+      const lastSet = sets[sets.length - 1] || { weight: 60, reps: 10 };
+      setSets([
+        ...sets,
+        { setNum: sets.length + 1, weight: lastSet.weight, reps: lastSet.reps, completed: false }
+      ]);
+    }
   };
 
   const handleFinishExercise = () => {
@@ -105,7 +138,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div>
@@ -113,10 +146,12 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
               <span className="badge badge-emerald" style={{ marginBottom: '0.2rem' }}>
                 <CheckCircle2 size={12} /> COMPLETED EXERCISE (DONE ✓)
               </span>
-            ) : exercise.isSuperset ? (
-              <span className="badge badge-amber" style={{ marginBottom: '0.2rem' }}>SUPERSET FOCUS</span>
+            ) : isSuperset ? (
+              <span className="badge badge-amber" style={{ marginBottom: '0.2rem' }}>
+                <Layers size={12} /> ALTERNATING SUPERSET
+              </span>
             ) : null}
-            <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0', color: isCompleted ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
+            <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0', color: isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
               {exercise.name}
             </h2>
             {exercise.note && (
@@ -164,70 +199,172 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
           )}
         </div>
 
-        {/* Set Logger Inputs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem' }}>
-          {sets.map((set, idx) => {
-            const oneRepMax = Math.round((Number(set.weight) || 0) * (1 + (Number(set.reps) || 0) / 30));
-            return (
+        {/* SET LOGGING INPUTS: ALTERNATING SUPERSET vs NORMAL SETS */}
+        {isSuperset ? (
+          /* ALTERNATING SUPERSET FORMAT REQUESTED BY USER */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
+            {sets.map((set, idx) => (
               <div
                 key={idx}
                 style={{
+                  background: 'rgba(2, 6, 23, 0.7)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  borderRadius: '16px',
+                  padding: '0.85rem 1rem',
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  background: set.completed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
-                  border: set.completed ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
-                  borderRadius: '14px',
-                  padding: '0.75rem 1rem'
+                  flexDirection: 'column',
+                  gap: '0.65rem'
                 }}
               >
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', width: '45px' }}>
-                  Set {set.setNum}
-                </span>
-
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <input
-                    type="number"
-                    value={set.weight}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => handleUpdateSet(idx, 'weight', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    className="input-field"
-                    style={{ padding: '0.45rem', textAlign: 'center', fontWeight: 700 }}
-                  />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>kg</span>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--accent-amber)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>SUPERSET PAIR #{set.setNum}</span>
+                  {set.exAChecked && set.exBChecked && <span className="badge badge-emerald">ROUND DONE ✓</span>}
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <input
-                    type="number"
-                    value={set.reps}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => handleUpdateSet(idx, 'reps', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                    className="input-field"
-                    style={{ padding: '0.45rem', textAlign: 'center', fontWeight: 700 }}
-                  />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>reps</span>
+                {/* Sub Exercise A (e.g. Bench Press) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: set.exAChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)', padding: '0.6rem 0.85rem', borderRadius: '12px' }}>
+                  <div style={{ flex: 2, fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-cyan)' }}>
+                    🏋️ {subA}
+                  </div>
+
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input
+                      type="number"
+                      value={set.exAWeight ?? set.weight ?? 60}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => handleUpdateSuperset(idx, 'exAWeight', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      className="input-field"
+                      style={{ padding: '0.35rem', textAlign: 'center', fontWeight: 700 }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>kg</span>
+                  </div>
+
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input
+                      type="number"
+                      value={set.exAReps ?? set.reps ?? 8}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => handleUpdateSuperset(idx, 'exAReps', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                      className="input-field"
+                      style={{ padding: '0.35rem', textAlign: 'center', fontWeight: 700 }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>reps</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleUpdateSuperset(idx, 'exAChecked', !set.exAChecked)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}
+                  >
+                    {set.exAChecked ? <CheckSquare color="var(--accent-emerald)" size={22} /> : <Square color="var(--text-dim)" size={22} />}
+                  </button>
                 </div>
 
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', width: '55px', textAlign: 'right' }}>
-                  1RM: {oneRepMax}k
-                </div>
+                {/* Sub Exercise B (e.g. Pull-ups) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: set.exBChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)', padding: '0.6rem 0.85rem', borderRadius: '12px' }}>
+                  <div style={{ flex: 2, fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-amber)' }}>
+                    🏋️ {subB}
+                  </div>
 
-                <button
-                  onClick={() => handleUpdateSet(idx, 'completed', !set.completed)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}
-                >
-                  {set.completed ? <CheckSquare color="var(--accent-emerald)" size={24} /> : <Square color="var(--text-dim)" size={24} />}
-                </button>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input
+                      type="number"
+                      value={set.exBWeight ?? 0}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => handleUpdateSuperset(idx, 'exBWeight', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      className="input-field"
+                      style={{ padding: '0.35rem', textAlign: 'center', fontWeight: 700 }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>kg</span>
+                  </div>
+
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input
+                      type="number"
+                      value={set.exBReps ?? 10}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => handleUpdateSuperset(idx, 'exBReps', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                      className="input-field"
+                      style={{ padding: '0.35rem', textAlign: 'center', fontWeight: 700 }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>reps</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleUpdateSuperset(idx, 'exBChecked', !set.exBChecked)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}
+                  >
+                    {set.exBChecked ? <CheckSquare color="var(--accent-emerald)" size={22} /> : <Square color="var(--text-dim)" size={22} />}
+                  </button>
+                </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : (
+          /* NORMAL SINGLE EXERCISE LOGGING */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem' }}>
+            {sets.map((set, idx) => {
+              const oneRepMax = Math.round((Number(set.weight) || 0) * (1 + (Number(set.reps) || 0) / 30));
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    background: set.completed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
+                    border: set.completed ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
+                    borderRadius: '14px',
+                    padding: '0.75rem 1rem'
+                  }}
+                >
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', width: '45px' }}>
+                    Set {set.setNum}
+                  </span>
+
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <input
+                      type="number"
+                      value={set.weight}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => handleUpdateNormalSet(idx, 'weight', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      className="input-field"
+                      style={{ padding: '0.45rem', textAlign: 'center', fontWeight: 700 }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>kg</span>
+                  </div>
+
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <input
+                      type="number"
+                      value={set.reps}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => handleUpdateNormalSet(idx, 'reps', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                      className="input-field"
+                      style={{ padding: '0.45rem', textAlign: 'center', fontWeight: 700 }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>reps</span>
+                  </div>
+
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', width: '55px', textAlign: 'right' }}>
+                    1RM: {oneRepMax}k
+                  </div>
+
+                  <button
+                    onClick={() => handleUpdateNormalSet(idx, 'completed', !set.completed)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}
+                  >
+                    {set.completed ? <CheckSquare color="var(--accent-emerald)" size={24} /> : <Square color="var(--text-dim)" size={24} />}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={handleAddSet} className="btn-secondary" style={{ flex: 1 }}>
-            + Add Set
+            + Add Superset Pair
           </button>
 
           <button onClick={handleFinishExercise} className="btn-emerald" style={{ flex: 2 }}>
