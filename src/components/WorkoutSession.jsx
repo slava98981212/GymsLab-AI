@@ -719,10 +719,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                           </div>
 
                           <button
-                            className={isLoaded ? 'btn-emerald' : 'btn-primary'}
+                            className={ex.completed ? 'btn-emerald' : isLoaded ? 'btn-primary' : 'btn-secondary'}
                             style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                           >
-                            {isLoaded ? 'Open Focus' : 'Start'} <Play size={12} />
+                            {ex.completed ? 'DONE ✓' : isLoaded ? 'Open Focus' : 'Start'} {ex.completed ? <CheckCircle2 size={12} /> : <Play size={12} />}
                           </button>
                         </div>
                       );
@@ -782,10 +782,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <button
                             onClick={() => setActiveRunnerExIdx(exIdx)}
-                            className="btn-primary"
+                            className={ex.completed ? 'btn-emerald' : 'btn-primary'}
                             style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
                           >
-                            Edit / Run <Edit2 size={12} />
+                            {ex.completed ? 'DONE ✓' : 'Edit / Run'} {ex.completed ? <CheckCircle2 size={12} /> : <Edit2 size={12} />}
                           </button>
                           <button
                             onClick={() => setDeletingExIdx(exIdx)}

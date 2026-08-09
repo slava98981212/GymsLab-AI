@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, CheckSquare, Square, Timer, Check, X, History, Dumbbell, Award, ArrowRight } from 'lucide-react';
+import { Play, Pause, RotateCcw, CheckSquare, Square, Timer, Check, X, History, Dumbbell, Award, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerciseSets, onClose }) {
   const [sets, setSets] = useState(
@@ -13,24 +13,33 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
         ]
   );
 
-  // Background-Persistent Start Timestamp
+  const isCompleted = exercise.completed || false;
+
+  // Background-Persistent Start Timestamp (only if not completed)
   const [startedAt] = useState(exercise.startedAt || Date.now());
 
-  // Real-time elapsed duration calculation based on timestamp (persists even if modal is closed!)
-  const [elapsedSecs, setElapsedSecs] = useState(() => Math.floor((Date.now() - startedAt) / 1000));
+  // Frozen Duration for completed exercise vs live running duration for active exercise
+  const [elapsedSecs, setElapsedSecs] = useState(() => {
+    if (isCompleted) {
+      return exercise.durationSecs || 0;
+    }
+    return Math.floor((Date.now() - startedAt) / 1000);
+  });
 
   // Rest Timer State
   const restDurationSec = exercise.restSec || 120;
   const [restSeconds, setRestSeconds] = useState(0);
   const [restActive, setRestActive] = useState(false);
 
-  // Persistent Real-Time Elapsed Timer Effect
+  // Persistent Real-Time Elapsed Timer Effect (Only runs if exercise is NOT yet completed!)
   useEffect(() => {
+    if (isCompleted) return; // DO NOT RESTART TIMER IF EXERCISE IS ALREADY FINISHED/DONE!
+
     const interval = setInterval(() => {
       setElapsedSecs(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
     return () => clearInterval(interval);
-  }, [startedAt]);
+  }, [startedAt, isCompleted]);
 
   // Rest Timer Effect
   useEffect(() => {
@@ -60,6 +69,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
   }, [restActive, restSeconds]);
 
   const startRestTimer = () => {
+    if (isCompleted) return;
     setRestSeconds(restDurationSec);
     setRestActive(true);
   };
@@ -69,7 +79,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     updated[idx][field] = val;
     setSets(updated);
 
-    if (field === 'completed' && val === true) {
+    if (field === 'completed' && val === true && !isCompleted) {
       startRestTimer();
     }
   };
@@ -78,7 +88,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     const lastSet = sets[sets.length - 1] || { weight: 60, reps: 10 };
     setSets([
       ...sets,
-      { setNum: sets.length + 1, weight: lastSet.weight, reps: lastSet.reps, completed: false }
+      { setNum: sets.length + 1, weight: lastSet.weight, reps: lastSet.reps, completed: true }
     ]);
   };
 
@@ -99,10 +109,14 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div>
-            {exercise.isSuperset && (
+            {isCompleted ? (
+              <span className="badge badge-emerald" style={{ marginBottom: '0.2rem' }}>
+                <CheckCircle2 size={12} /> COMPLETED EXERCISE (DONE ✓)
+              </span>
+            ) : exercise.isSuperset ? (
               <span className="badge badge-amber" style={{ marginBottom: '0.2rem' }}>SUPERSET FOCUS</span>
-            )}
-            <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0', color: exercise.isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
+            ) : null}
+            <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0', color: isCompleted ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
               {exercise.name}
             </h2>
             {exercise.note && (
@@ -115,38 +129,39 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
             )}
           </div>
 
-          <button onClick={onClose} title="Close view (timer continues in background)" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
             <X size={22} />
           </button>
         </div>
 
-        {/* Elapsed Timer & Rest Timer Bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-          {/* Total Elapsed Time (Persistent Timestamp Based) */}
-          <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '0.85rem', borderRadius: '16px', textAlign: 'center' }}>
+        {/* Elapsed Timer / Frozen Duration Display */}
+        <div style={{ display: 'grid', gridTemplateColumns: isCompleted ? '1fr' : '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: isCompleted ? '1px solid var(--accent-emerald)' : '1px solid var(--border-card)', padding: '0.85rem', borderRadius: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-              <Timer size={12} color="var(--primary-cyan)" /> Running Timer (Persistent)
+              <Timer size={12} color={isCompleted ? 'var(--accent-emerald)' : 'var(--primary-cyan)'} />
+              {isCompleted ? 'Completed Duration (Timer Stopped)' : 'Running Timer (Persistent)'}
             </div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--primary-cyan)', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: isCompleted ? 'var(--accent-emerald)' : 'var(--primary-cyan)', marginTop: '0.25rem' }}>
               {formatMinSec(elapsedSecs)}
             </div>
           </div>
 
-          {/* Rest Timer */}
-          <div style={{
-            background: restActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))' : 'rgba(2, 6, 23, 0.6)',
-            border: restActive ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
-            padding: '0.85rem',
-            borderRadius: '16px',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-              <Timer size={12} color="var(--accent-amber)" /> Rest Timer ({restDurationSec}s)
+          {!isCompleted && (
+            <div style={{
+              background: restActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))' : 'rgba(2, 6, 23, 0.6)',
+              border: restActive ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
+              padding: '0.85rem',
+              borderRadius: '16px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                <Timer size={12} color="var(--accent-amber)" /> Rest Timer ({restDurationSec}s)
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: restActive ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
+                {restSeconds > 0 ? formatMinSec(restSeconds) : 'Ready'}
+              </div>
             </div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: restActive ? 'var(--accent-amber)' : 'var(--text-muted)', marginTop: '0.25rem' }}>
-              {restSeconds > 0 ? formatMinSec(restSeconds) : 'Ready'}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Set Logger Inputs */}
@@ -209,14 +224,14 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
           })}
         </div>
 
-        {/* Action Buttons: + Add Set & Finish Exercise */}
+        {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={handleAddSet} className="btn-secondary" style={{ flex: 1 }}>
             + Add Set
           </button>
 
           <button onClick={handleFinishExercise} className="btn-emerald" style={{ flex: 2 }}>
-            Finish Exercise <Check size={16} />
+            {isCompleted ? 'Save Changes' : 'Finish Exercise'} <Check size={16} />
           </button>
         </div>
       </div>
