@@ -13,25 +13,24 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
         ]
   );
 
-  // Total Exercise Elapsed Duration
-  const [elapsedSecs, setElapsedSecs] = useState(0);
-  const [exerciseStarted, setExerciseStarted] = useState(true);
+  // Background-Persistent Start Timestamp
+  const [startedAt] = useState(exercise.startedAt || Date.now());
+
+  // Real-time elapsed duration calculation based on timestamp (persists even if modal is closed!)
+  const [elapsedSecs, setElapsedSecs] = useState(() => Math.floor((Date.now() - startedAt) / 1000));
 
   // Rest Timer State
   const restDurationSec = exercise.restSec || 120;
   const [restSeconds, setRestSeconds] = useState(0);
   const [restActive, setRestActive] = useState(false);
 
-  // Elapsed Timer Effect
+  // Persistent Real-Time Elapsed Timer Effect
   useEffect(() => {
-    let interval = null;
-    if (exerciseStarted) {
-      interval = setInterval(() => {
-        setElapsedSecs((prev) => prev + 1);
-      }, 1000);
-    }
+    const interval = setInterval(() => {
+      setElapsedSecs(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
     return () => clearInterval(interval);
-  }, [exerciseStarted]);
+  }, [startedAt]);
 
   // Rest Timer Effect
   useEffect(() => {
@@ -42,7 +41,6 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
       }, 1000);
     } else if (restSeconds === 0 && restActive) {
       setRestActive(false);
-      // Play chime alert
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -71,7 +69,6 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
     updated[idx][field] = val;
     setSets(updated);
 
-    // If set completed was checked, trigger rest timer!
     if (field === 'completed' && val === true) {
       startRestTimer();
     }
@@ -86,7 +83,7 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
   };
 
   const handleFinishExercise = () => {
-    onSaveExerciseSets(sets);
+    onSaveExerciseSets(sets, elapsedSecs, startedAt);
     onClose();
   };
 
@@ -118,17 +115,17 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
             )}
           </div>
 
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} title="Close view (timer continues in background)" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
             <X size={22} />
           </button>
         </div>
 
         {/* Elapsed Timer & Rest Timer Bar */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-          {/* Total Elapsed Time */}
+          {/* Total Elapsed Time (Persistent Timestamp Based) */}
           <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '0.85rem', borderRadius: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-              <Timer size={12} color="var(--primary-cyan)" /> Elapsed Time
+              <Timer size={12} color="var(--primary-cyan)" /> Running Timer (Persistent)
             </div>
             <div style={{ fontSize: '1.3rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--primary-cyan)', marginTop: '0.25rem' }}>
               {formatMinSec(elapsedSecs)}
@@ -177,7 +174,8 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
                   <input
                     type="number"
                     value={set.weight}
-                    onChange={(e) => handleUpdateSet(idx, 'weight', parseFloat(e.target.value))}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => handleUpdateSet(idx, 'weight', e.target.value === '' ? '' : parseFloat(e.target.value))}
                     className="input-field"
                     style={{ padding: '0.45rem', textAlign: 'center', fontWeight: 700 }}
                   />
@@ -188,7 +186,8 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
                   <input
                     type="number"
                     value={set.reps}
-                    onChange={(e) => handleUpdateSet(idx, 'reps', parseInt(e.target.value, 10))}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => handleUpdateSet(idx, 'reps', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
                     className="input-field"
                     style={{ padding: '0.45rem', textAlign: 'center', fontWeight: 700 }}
                   />

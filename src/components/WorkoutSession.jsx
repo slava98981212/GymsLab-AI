@@ -237,6 +237,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         subExercises: progEx.subExercises || [],
         restSec: progEx.restSec || 120,
         note: progEx.note || '',
+        startedAt: Date.now(),
         sets: initialSets
       });
       onUpdateLog({ exercises: updatedExercises, workoutActive: true });
@@ -270,6 +271,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         exerciseId: exObj.id,
         name: exObj.name,
         restSec: 120,
+        startedAt: Date.now(),
         sets: [newSet]
       });
       onUpdateLog({ exercises: updatedExercises, workoutActive: true });
@@ -277,10 +279,13 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     }
   };
 
-  const handleSaveSetsFromRunner = (updatedSets) => {
+  const handleSaveSetsFromRunner = (updatedSets, elapsedSecs, startedAt) => {
     if (activeRunnerExIdx === null) return;
     const updatedExercises = JSON.parse(JSON.stringify(exercises));
     updatedExercises[activeRunnerExIdx].sets = updatedSets;
+    updatedExercises[activeRunnerExIdx].durationSecs = elapsedSecs;
+    updatedExercises[activeRunnerExIdx].startedAt = startedAt;
+    updatedExercises[activeRunnerExIdx].completed = true;
     onUpdateLog({ exercises: updatedExercises });
   };
 
