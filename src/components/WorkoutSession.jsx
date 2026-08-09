@@ -95,13 +95,19 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
   const handleStartWorkout = () => {
     setWorkoutActive(true);
-    setWorkoutElapsedSecs(0);
-    onUpdateLog({ workoutActive: true, workoutDurationSecs: 0, exercises: [] });
+    const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
+    setWorkoutElapsedSecs(existingSecs);
+    onUpdateLog({ workoutActive: true, workoutDurationSecs: existingSecs });
   };
 
   const handlePauseWorkout = () => {
     setWorkoutActive(false);
     onUpdateLog({ workoutActive: false, workoutDurationSecs: workoutElapsedSecs });
+  };
+
+  const handleResumeWorkout = () => {
+    setWorkoutActive(true);
+    onUpdateLog({ workoutActive: true, workoutDurationSecs: workoutElapsedSecs });
   };
 
   const handleFinishWorkout = () => {
@@ -350,7 +356,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       </div>
 
       {/* WORKOUT STATE SCREEN 1: PRE-WORKOUT OVERVIEW (BEFORE START WORKOUT IS CLICKED) */}
-      {!workoutActive ? (
+      {!workoutActive && workoutElapsedSecs === 0 ? (
         <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div>
@@ -414,27 +420,35 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         /* WORKOUT STATE SCREEN 2: ACTIVE WORKOUT MODE (ONLY SHOWN AFTER CLICKING START WORKOUT) */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Active Workout Timer Bar */}
-          <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(15, 23, 42, 0.95))', borderColor: 'var(--primary-cyan)' }}>
+          <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(15, 23, 42, 0.95))', borderColor: workoutActive ? 'var(--primary-cyan)' : 'var(--accent-amber)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <span className="badge badge-cyan"><Timer size={12} className="spin" /> WORKOUT IN PROGRESS</span>
+                <span className={`badge ${workoutActive ? 'badge-cyan' : 'badge-amber'}`}>
+                  <Timer size={12} className={workoutActive ? 'spin' : ''} /> {workoutActive ? 'WORKOUT IN PROGRESS' : 'TIMER PAUSED ⏸️'}
+                </span>
                 <h2 style={{ fontSize: '1.3rem', marginTop: '0.25rem' }}>{currentDayProgram.dayName}</h2>
               </div>
 
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>TOTAL DURATION</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--primary-cyan)' }}>
+                <div style={{ fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: workoutActive ? 'var(--primary-cyan)' : 'var(--accent-amber)' }}>
                   {formatHMS(workoutElapsedSecs)}
                 </div>
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button onClick={handlePauseWorkout} className="btn-secondary" style={{ flex: 1 }}>
-                <Pause size={16} /> Pause Timer
-              </button>
+              {workoutActive ? (
+                <button onClick={handlePauseWorkout} className="btn-secondary" style={{ flex: 1 }}>
+                  <Pause size={16} /> Pause Timer
+                </button>
+              ) : (
+                <button onClick={handleResumeWorkout} className="btn-emerald" style={{ flex: 1 }}>
+                  <Play size={16} /> Resume Timer
+                </button>
+              )}
 
-              {/* FINISH WORKOUT BUTTON - REVEALED ONLY WHEN WORKOUT HAS STARTED */}
+              {/* FINISH WORKOUT BUTTON */}
               <button
                 onClick={handleFinishWorkout}
                 className="btn-primary"
