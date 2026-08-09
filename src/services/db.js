@@ -72,17 +72,20 @@ export function sanitizeDailyLog(rawLog) {
     }).filter(Boolean);
   }
 
-  // Ensure savedWorkouts is a clean array
+  // Ensure savedWorkouts is a clean array and strictly belongs to this log date
   if (!Array.isArray(safeLog.savedWorkouts)) {
     safeLog.savedWorkouts = [];
   } else {
-    safeLog.savedWorkouts = safeLog.savedWorkouts.filter(Boolean).map((w) => {
-      if (!w || typeof w !== 'object') return null;
-      return {
-        ...w,
-        exercises: Array.isArray(w.exercises) ? w.exercises.filter(Boolean) : []
-      };
-    }).filter(Boolean);
+    safeLog.savedWorkouts = safeLog.savedWorkouts
+      .filter(Boolean)
+      .map((w) => {
+        if (!w || typeof w !== 'object') return null;
+        return {
+          ...w,
+          exercises: Array.isArray(w.exercises) ? w.exercises.filter(Boolean) : []
+        };
+      })
+      .filter((w) => Boolean(w) && (!w.date || !safeLog.date || w.date === safeLog.date));
   }
 
   return safeLog;

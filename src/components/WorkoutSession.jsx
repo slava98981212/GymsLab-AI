@@ -92,8 +92,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   // Global Singleton Rest Timer State
   const [restState, setRestState] = useState(() => getGlobalRestState());
 
-  // Saved Past Workouts for Today
-  const savedWorkouts = dailyLog?.savedWorkouts || [];
+  // Saved Past Workouts for Today (Strictly isolated to dailyLog.date)
+  const savedWorkouts = (dailyLog?.savedWorkouts || []).filter(
+    (w) => Boolean(w) && (!w.date || w.date === dailyLog.date)
+  );
 
   // Single-Source-of-Truth Timer Effect
   useEffect(() => {
