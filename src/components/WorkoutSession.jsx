@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateCcw, HeartPulse, Sparkles, Calendar, Zap, Layers, History, FlameKindling } from 'lucide-react';
+import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateCcw, HeartPulse, Sparkles, Calendar, Zap, Layers, History, FlameKindling, Check, Trash2, Edit2, X, Award, AlertTriangle } from 'lucide-react';
 import { WEEKLY_WORKOUT_SPLIT, MON_WED_FRI_ROUTINE, PRESET_EXERCISES } from '../utils/constants';
 import ExerciseRunnerModal from './ExerciseRunnerModal';
 
@@ -8,23 +8,30 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   const todayDayName = dayNames[new Date().getDay()];
 
   const [selectedDay, setSelectedDay] = useState(todayDayName);
-  const [activeStage, setActiveStage] = useState('warmup');
+  const [activeStage, setActiveStage] = useState('main');
 
   const currentDayProgram = WEEKLY_WORKOUT_SPLIT[selectedDay] || WEEKLY_WORKOUT_SPLIT.Saturday;
   const isMonWedFri = ['Monday', 'Wednesday', 'Friday'].includes(selectedDay);
+
+  // Overall Workout Active & Elapsed Timer
+  const [workoutActive, setWorkoutActive] = useState(dailyLog?.workoutActive || false);
+  const [workoutElapsedSecs, setWorkoutElapsedSecs] = useState(dailyLog?.workoutDurationSecs || 0);
+
+  // Workout Summary Modal State
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+
+  // Delete Confirmation Modal State
+  const [deletingExIdx, setDeletingExIdx] = useState(null);
 
   // Special Checkboxes State
   const calisthenicsCompleted = dailyLog?.calisthenicsCompleted || false;
   const saunaCompleted = dailyLog?.saunaCompleted || false;
 
-  // Warmup state
+  // Warmup & Cooldown state
   const warmupCompleted = dailyLog?.warmupCompleted || false;
   const [warmupChecks, setWarmupChecks] = useState(dailyLog?.warmupChecks || {});
-
-  // Mon/Wed/Fri special routine state
   const [mwfChecks, setMwfChecks] = useState(dailyLog?.mwfChecks || {});
-
-  // Cooldown state
   const cooldownCompleted = dailyLog?.cooldownCompleted || false;
   const [cooldownChecks, setCooldownChecks] = useState(dailyLog?.cooldownChecks || {});
 
@@ -39,7 +46,25 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
 
-  // Timer Countdown Effect
+  // Overall Workout Timer Effect
+  useEffect(() => {
+    let interval = null;
+    if (workoutActive) {
+      interval = setInterval(() => {
+        setWorkoutElapsedSecs((prev) => {
+          const next = prev + 1;
+          // save periodically to log
+          if (next % 5 === 0) {
+            onUpdateLog({ workoutDurationSecs: next, workoutActive: true });
+          }
+          return next;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [workoutActive]);
+
+  // Rest Timer Countdown Effect
   useEffect(() => {
     let interval = null;
     if (timerActive && timerSeconds > 0) {
@@ -65,6 +90,50 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     }
     return () => clearInterval(interval);
   }, [timerActive, timerSeconds]);
+
+  const handleStartWorkout = () => {
+    setWorkoutActive(true);
+    onUpdateLog({ workoutActive: true });
+  };
+
+  const handlePauseWorkout = () => {
+    setWorkoutActive(false);
+    onUpdateLog({ workoutActive: false, workoutDurationSecs: workoutElapsedSecs });
+  };
+
+  const handleFinishWorkout = () => {
+    setWorkoutActive(false);
+
+    // Calculate Workout Summary Statistics
+    let totalVolume = 0;
+    let totalSets = 0;
+    let totalReps = 0;
+
+    exercises.forEach((ex) => {
+      if (ex.sets) {
+        ex.sets.forEach((s) => {
+          if (s.completed || s.weight > 0) {
+            totalSets += 1;
+            totalReps += Number(s.reps) || 0;
+            totalVolume += (Number(s.weight) || 0) * (Number(s.reps) || 0);
+          }
+        });
+      }
+    });
+
+    const summary = {
+      durationSecs: workoutElapsedSecs,
+      totalVolume,
+      totalSets,
+      totalReps,
+      exerciseCount: exercises.length,
+      exercises
+    };
+
+    setSummaryData(summary);
+    setShowSummaryModal(true);
+    onUpdateLog({ workoutActive: false, workoutDurationSecs: workoutElapsedSecs, workoutCompleted: true, workoutSummary: summary });
+  };
 
   const startRestTimer = (secs) => {
     if (!secs) return;
@@ -115,6 +184,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   };
 
   const handleAddProgramExercise = (progEx) => {
+    if (!workoutActive) setWorkoutActive(true);
     const existingIdx = exercises.findIndex((e) => e.exerciseId === progEx.id);
     let updatedExercises = [...exercises];
 
@@ -142,7 +212,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         note: progEx.note || '',
         sets: initialSets
       });
-      onUpdateLog({ exercises: updatedExercises });
+      onUpdateLog({ exercises: updatedExercises, workoutActive: true });
       setActiveRunnerExIdx(updatedExercises.length - 1);
     } else {
       setActiveRunnerExIdx(existingIdx);
@@ -150,6 +220,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
   };
 
   const handleAddCustomPreset = () => {
+    if (!workoutActive) setWorkoutActive(true);
     const exObj = PRESET_EXERCISES.find((e) => e.id === selectedPresetId);
     if (!exObj) return;
 
@@ -165,7 +236,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
 
     if (existingIdx >= 0) {
       updatedExercises[existingIdx].sets.push(newSet);
-      onUpdateLog({ exercises: updatedExercises });
+      onUpdateLog({ exercises: updatedExercises, workoutActive: true });
       setActiveRunnerExIdx(existingIdx);
     } else {
       updatedExercises.push({
@@ -174,7 +245,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
         restSec: 120,
         sets: [newSet]
       });
-      onUpdateLog({ exercises: updatedExercises });
+      onUpdateLog({ exercises: updatedExercises, workoutActive: true });
       setActiveRunnerExIdx(updatedExercises.length - 1);
     }
   };
@@ -198,13 +269,62 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
     onUpdateLog({ exercises: updatedExercises });
   };
 
-  const handleDeleteExercise = (exIdx) => {
-    const updated = exercises.filter((_, idx) => idx !== exIdx);
+  const confirmDeleteExercise = () => {
+    if (deletingExIdx === null) return;
+    const updated = exercises.filter((_, idx) => idx !== deletingExIdx);
     onUpdateLog({ exercises: updated });
+    setDeletingExIdx(null);
+  };
+
+  const formatHMS = (totalSecs) => {
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem 0' }}>
+      {/* TOP HERO: WORKOUT TIMER & START / FINISH WORKOUT CONTROL */}
+      <div className="glass-card" style={{ background: workoutActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(15, 23, 42, 0.95))' : 'rgba(15, 23, 42, 0.85)', border: workoutActive ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div>
+            <span className={`badge ${workoutActive ? 'badge-cyan' : 'badge-emerald'}`}>
+              <Timer size={12} /> {workoutActive ? 'WORKOUT IN PROGRESS' : 'TODAY\'S WORKOUT'}
+            </span>
+            <h2 style={{ fontSize: '1.3rem', marginTop: '0.25rem' }}>{currentDayProgram.dayName}</h2>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>TOTAL WORKOUT TIME</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--primary-cyan)' }}>
+              {formatHMS(workoutElapsedSecs)}
+            </div>
+          </div>
+        </div>
+
+        {/* Start / Pause / Finish Workout Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          {!workoutActive ? (
+            <button onClick={handleStartWorkout} className="btn-emerald" style={{ flex: 2, padding: '0.85rem' }}>
+              🚀 START WORKOUT
+            </button>
+          ) : (
+            <button onClick={handlePauseWorkout} className="btn-secondary" style={{ flex: 1, padding: '0.85rem' }}>
+              <Pause size={16} /> Pause
+            </button>
+          )}
+
+          <button
+            onClick={handleFinishWorkout}
+            className="btn-primary"
+            style={{ flex: 2, padding: '0.85rem', background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}
+          >
+            🏁 FINISH WORKOUT <Check size={16} />
+          </button>
+        </div>
+      </div>
+
       {/* Rest Timer Active Banner */}
       {timerSeconds > 0 && (
         <div style={{
@@ -278,17 +398,6 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* Active Day Banner */}
-      <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(15, 23, 42, 0.8))', borderColor: 'rgba(6, 182, 212, 0.3)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span className="badge badge-cyan">{currentDayProgram.tag}</span>
-            <h2 style={{ fontSize: '1.25rem', marginTop: '0.25rem' }}>{currentDayProgram.dayName}</h2>
-          </div>
-          <Zap color="var(--primary-cyan)" size={24} />
         </div>
       </div>
 
@@ -531,79 +640,81 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
       {activeStage === 'main' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Preset Exercises Picker for Current Day */}
-          <div className="glass-card">
-            <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Layers size={16} /> Presets for {selectedDay} (Tap to Open Exercise)
-            </h3>
+          {currentDayProgram.mainExercises && currentDayProgram.mainExercises.length > 0 && (
+            <div className="glass-card">
+              <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Layers size={16} /> Presets for {selectedDay} (Tap to Open Exercise)
+              </h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-              {currentDayProgram.mainExercises.map((progEx) => {
-                const isLoaded = exercises.some((e) => e.exerciseId === progEx.id);
-                const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                {currentDayProgram.mainExercises.map((progEx) => {
+                  const isLoaded = exercises.some((e) => e.exerciseId === progEx.id);
+                  const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
 
-                return (
-                  <div
-                    key={progEx.id}
-                    onClick={() => handleAddProgramExercise(progEx)}
-                    style={{
-                      background: 'rgba(2, 6, 23, 0.6)',
-                      border: progEx.isSuperset ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-card)',
-                      borderRadius: '12px',
-                      padding: '0.75rem 1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: progEx.isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
-                        {progEx.name}
-                      </div>
-                      {progEx.isSuperset && (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
-                          {progEx.subExercises?.join(' + ')}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                        {progEx.targetSets} sets | {progEx.note}
-                      </div>
-                      {pastRecord && (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                          <History size={11} /> Last time: <strong>{pastRecord}</strong>
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      className={isLoaded ? 'btn-emerald' : 'btn-primary'}
-                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                  return (
+                    <div
+                      key={progEx.id}
+                      onClick={() => handleAddProgramExercise(progEx)}
+                      style={{
+                        background: 'rgba(2, 6, 23, 0.6)',
+                        border: progEx.isSuperset ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-card)',
+                        borderRadius: '12px',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer'
+                      }}
                     >
-                      {isLoaded ? 'Open Focus' : 'Start'} <Play size={12} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                      <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: progEx.isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
+                          {progEx.name}
+                        </div>
+                        {progEx.isSuperset && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
+                            {progEx.subExercises?.join(' + ')}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                          {progEx.targetSets} sets | {progEx.note}
+                        </div>
+                        {pastRecord && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                            <History size={11} /> Last time: <strong>{pastRecord}</strong>
+                          </div>
+                        )}
+                      </div>
 
-            {/* Custom Exercise Selector */}
-            <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-card)' }}>
-              <select
-                value={selectedPresetId}
-                onChange={(e) => setSelectedPresetId(e.target.value)}
-                className="input-field"
-                style={{ flex: 1 }}
-              >
-                {PRESET_EXERCISES.map((ex) => (
-                  <option key={ex.id} value={ex.id}>{ex.name} ({ex.muscle})</option>
-                ))}
-              </select>
+                      <button
+                        className={isLoaded ? 'btn-emerald' : 'btn-primary'}
+                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                      >
+                        {isLoaded ? 'Open Focus' : 'Start'} <Play size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
 
-              <button onClick={handleAddCustomPreset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>
-                <Plus size={16} /> Open Exercise
-              </button>
+              {/* Custom Exercise Selector */}
+              <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-card)' }}>
+                <select
+                  value={selectedPresetId}
+                  onChange={(e) => setSelectedPresetId(e.target.value)}
+                  className="input-field"
+                  style={{ flex: 1 }}
+                >
+                  {PRESET_EXERCISES.map((ex) => (
+                    <option key={ex.id} value={ex.id}>{ex.name} ({ex.muscle})</option>
+                  ))}
+                </select>
+
+                <button onClick={handleAddCustomPreset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>
+                  <Plus size={16} /> Open Exercise
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Quick Rest Timer Controller */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(2, 6, 23, 0.4)', padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid var(--border-card)' }}>
@@ -628,10 +739,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
             ))}
           </div>
 
-          {/* Active Logged Exercises List */}
+          {/* Active Logged Exercises List with Edit & Double-Check Delete */}
           {exercises.length === 0 ? (
             <div className="glass-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-              Tap <strong>Start</strong> on any exercise above to launch focus mode and log sets & weight!
+              Tap <strong>🚀 START WORKOUT</strong> or select an exercise above to log your sets & weights!
             </div>
           ) : (
             exercises.map((ex, exIdx) => {
@@ -664,13 +775,14 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                         className="btn-primary"
                         style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
                       >
-                        Run Focus Mode <Play size={12} />
+                        Edit / Run <Edit2 size={12} />
                       </button>
                       <button
-                        onClick={() => handleDeleteExercise(exIdx)}
-                        style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '0.75rem' }}
+                        onClick={() => setDeletingExIdx(exIdx)}
+                        title="Delete Exercise"
+                        style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '0.25rem' }}
                       >
-                        Remove
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -699,7 +811,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                             <input
                               type="number"
                               value={set.weight}
-                              onChange={(e) => handleUpdateSet(exIdx, setIdx, 'weight', parseFloat(e.target.value))}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => handleUpdateSet(exIdx, setIdx, 'weight', e.target.value === '' ? '' : parseFloat(e.target.value))}
                               className="input-field"
                               style={{ padding: '0.4rem', textAlign: 'center' }}
                             />
@@ -710,7 +823,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
                             <input
                               type="number"
                               value={set.reps}
-                              onChange={(e) => handleUpdateSet(exIdx, setIdx, 'reps', parseInt(e.target.value, 10))}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => handleUpdateSet(exIdx, setIdx, 'reps', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
                               className="input-field"
                               style={{ padding: '0.4rem', textAlign: 'center' }}
                             />
@@ -799,6 +913,102 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog }) 
           onSaveExerciseSets={handleSaveSetsFromRunner}
           onClose={() => setActiveRunnerExIdx(null)}
         />
+      )}
+
+      {/* WORKOUT SUMMARY STATS MODAL (AFTER CLICKING FINISH WORKOUT) */}
+      {showSummaryModal && summaryData && (
+        <div className="modal-overlay" onClick={() => setShowSummaryModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Award size={26} color="var(--accent-emerald)" />
+                <h2 style={{ fontSize: '1.3rem', margin: 0 }}>Workout Session Complete!</h2>
+              </div>
+              <button onClick={() => setShowSummaryModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+              Awesome performance! Here is your total workout summary:
+            </p>
+
+            {/* Summary Stat Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '1rem', borderRadius: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>⏱️ Total Duration</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary-cyan)', marginTop: '0.2rem' }}>
+                  {formatHMS(summaryData.durationSecs)}
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '1rem', borderRadius: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🏋️ Total Volume Moved</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--accent-emerald)', marginTop: '0.2rem' }}>
+                  {summaryData.totalVolume} <span style={{ fontSize: '0.75rem' }}>kg</span>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '1rem', borderRadius: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🔢 Total Sets</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
+                  {summaryData.totalSets} <span style={{ fontSize: '0.75rem' }}>sets</span>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', padding: '1rem', borderRadius: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🎯 Total Reps</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--accent-purple)', marginTop: '0.2rem' }}>
+                  {summaryData.totalReps} <span style={{ fontSize: '0.75rem' }}>reps</span>
+                </div>
+              </div>
+            </div>
+
+            {/* List of Completed Movements */}
+            <div style={{ background: 'rgba(2, 6, 23, 0.5)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-cyan)', marginBottom: '0.5rem' }}>
+                Completed Exercises ({summaryData.exercises.length}):
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                {summaryData.exercises.map((ex, i) => (
+                  <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>• {ex.name}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{ex.sets?.length || 0} sets</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => setShowSummaryModal(false)} className="btn-emerald" style={{ width: '100%' }}>
+              Done & Save Summary <Check size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* DOUBLE-CHECK DELETE CONFIRMATION MODAL */}
+      {deletingExIdx !== null && exercises[deletingExIdx] && (
+        <div className="modal-overlay" onClick={() => setDeletingExIdx(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px', textAlign: 'center' }}>
+            <AlertTriangle size={36} color="var(--accent-rose)" style={{ marginBottom: '0.75rem' }} />
+            <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Delete Exercise?</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Are you sure you want to delete <strong>"{exercises[deletingExIdx].name}"</strong> and all of its recorded sets?
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setDeletingExIdx(null)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteExercise}
+                style={{ flex: 1, background: 'var(--accent-rose)', border: 'none', color: '#fff', padding: '0.85rem', borderRadius: '14px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
