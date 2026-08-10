@@ -553,6 +553,29 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
             <Zap color="var(--primary-cyan)" size={28} />
           </div>
 
+          {/* Mon/Wed/Fri Routine Special Card Preview */}
+          {currentDayProgram.includeMonWedFri && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))',
+              border: '1px solid var(--primary-cyan)',
+              borderRadius: '14px',
+              padding: '0.85rem',
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Zap size={15} /> 🔥 INCLUDED TODAY: {MON_WED_FRI_ROUTINE.title}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                {MON_WED_FRI_ROUTINE.items.map((item) => (
+                  <div key={item.id} style={{ fontSize: '0.78rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '0.35rem 0.6rem', borderRadius: '8px' }}>
+                    <span>• {item.name}</span>
+                    <span style={{ color: 'var(--primary-cyan)', fontWeight: 700 }}>{item.reps || item.sets + ' sets'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Quick Historical Performance Reminders for Scheduled Exercises */}
           {currentDayProgram.mainExercises && currentDayProgram.mainExercises.length > 0 && (
             <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '0.85rem', marginBottom: '1.25rem' }}>
@@ -859,6 +882,64 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 </div>
               </div>
 
+              {/* MON / WED / FRI CARDIO & CALVES / TIBIALIS SPECIAL ROUTINE CARD */}
+              {currentDayProgram.includeMonWedFri && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))',
+                  border: '1px solid var(--primary-cyan)',
+                  borderRadius: '16px',
+                  padding: '1rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Zap size={16} /> {MON_WED_FRI_ROUTINE.title}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {MON_WED_FRI_ROUTINE.items.map((item) => {
+                      const isChecked = mwfChecks[item.id] || false;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleToggleMwfCheck(item.id)}
+                          style={{
+                            background: isChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
+                            border: isChecked ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
+                            borderRadius: '12px',
+                            padding: '0.75rem 0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
+                                {item.name}
+                              </div>
+                              {item.isSuperset ? (
+                                <div style={{ fontSize: '0.72rem', color: 'var(--accent-amber)', marginTop: '0.15rem' }}>
+                                  {item.exercises.join(' + ')} ({item.sets} sets)
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                                  Target: {item.reps} {item.sets ? `(${item.sets} sets)` : ''} {item.rest ? `• Rest ${item.rest}` : ''}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                            {item.category}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {(currentDayProgram?.warmup || []).map((item) => {
                   const isChecked = warmupChecks[item.id] || false;
@@ -906,6 +987,58 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           {/* STAGE 2: MAIN EXERCISES & SUPERSETS */}
           {activeStage === 'main' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* MON / WED / FRI CARDIO & CALVES / TIBIALIS ROUTINE CARD */}
+              {currentDayProgram.includeMonWedFri && (
+                <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))', borderColor: 'var(--primary-cyan)' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Zap size={18} /> {MON_WED_FRI_ROUTINE.title}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {MON_WED_FRI_ROUTINE.items.map((item) => {
+                      const isChecked = mwfChecks[item.id] || false;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleToggleMwfCheck(item.id)}
+                          style={{
+                            background: isChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
+                            border: isChecked ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
+                            borderRadius: '12px',
+                            padding: '0.75rem 0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
+                                {item.name}
+                              </div>
+                              {item.isSuperset ? (
+                                <div style={{ fontSize: '0.72rem', color: 'var(--accent-amber)', marginTop: '0.15rem' }}>
+                                  {item.exercises.join(' + ')} ({item.sets} sets)
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                                  Target: {item.reps} {item.sets ? `(${item.sets} sets)` : ''} {item.rest ? `• Rest ${item.rest}` : ''}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                            {item.category}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Tuesday & Friday Calisthenics Special Checkbox */}
               {['Tuesday', 'Friday'].includes(selectedDay) && (
                 <div
