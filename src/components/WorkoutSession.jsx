@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateCcw, HeartPulse, Sparkles, Calendar, Zap, Layers, History, FlameKindling, Check, Trash2, Edit2, X, Award, AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateCcw, HeartPulse, Sparkles, Calendar, Zap, Layers, History, FlameKindling, Check, Trash2, Edit2, X, Award, AlertTriangle, ArrowRight, CheckCircle2, Camera } from 'lucide-react';
 import { WEEKLY_WORKOUT_SPLIT, MON_WED_FRI_ROUTINE, PRESET_EXERCISES } from '../utils/constants';
 import ExerciseRunnerModal from './ExerciseRunnerModal';
+import { validateVideoDuration, extractVideoFrames } from '../utils/videoUtils';
 import {
   triggerGlobalRestTimer,
   getGlobalRestState,
@@ -28,6 +29,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
   const [selectedDay, setSelectedDay] = useState(() => getDayNameFromDateStr(dailyLog?.date));
   const [activeStage, setActiveStage] = useState('main');
+
+  // Active Workout Type: 'workout1' (Main Split) vs 'workout2' (Calves & Abs Routine)
+  const [activeWorkoutType, setActiveWorkoutType] = useState(() => dailyLog?.activeWorkoutType || 'workout1');
+  const [videoLoading, setVideoLoading] = useState(false);
 
   // Keep selectedDay in sync with dailyLog.date changes from Header Date Navigator
   useEffect(() => {
@@ -139,14 +144,57 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   }, [workoutActive, dailyLog?.workoutStartMs, workoutElapsedSecs, activeRunnerExercise]);
 
   const handleStartWorkout = () => {
+    setActiveWorkoutType('workout1');
     setWorkoutActive(true);
     const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
     const startMs = startGlobalWorkoutClock(null, existingSecs);
     setWorkoutElapsedSecs(existingSecs);
-    onUpdateLog({ workoutActive: true, workoutDurationSecs: existingSecs, workoutStartMs: startMs });
+
+    let initialExs = exercises;
+    if (!exercises || exercises.length === 0) {
+      initialExs = (currentDayProgram.mainExercises || []).map((progEx) => {
+        const pastSets = getPreviousSetsForExercise(progEx.id, progEx.name);
+        const targetSetsCount = progEx.targetSets || (pastSets ? pastSets.length : 4);
+        const initialSets = [];
+        if (pastSets && pastSets.length > 0) {
+          for (let i = 0; i < targetSetsCount; i++) {
+            const pastSet = pastSets[i] || pastSets[pastSets.length - 1];
+            initialSets.push({
+              setNum: i + 1,
+              weight: pastSet.weight ?? 60,
+              reps: pastSet.reps ?? (progEx.targetReps || 10),
+              completed: false
+            });
+          }
+        } else {
+          for (let i = 1; i <= targetSetsCount; i++) {
+            initialSets.push({ setNum: i, weight: 60, reps: progEx.targetReps || 10, completed: false });
+          }
+        }
+        return {
+          exerciseId: progEx.id,
+          name: progEx.name,
+          isSuperset: progEx.isSuperset || false,
+          subExercises: progEx.subExercises || [],
+          restSec: progEx.restSec || 120,
+          note: progEx.note || '',
+          startedAt: Date.now(),
+          sets: initialSets
+        };
+      });
+    }
+
+    onUpdateLog({
+      workoutActive: true,
+      workoutDurationSecs: existingSecs,
+      workoutStartMs: startMs,
+      activeWorkoutType: 'workout1',
+      exercises: initialExs
+    });
   };
 
   const handleStartMwfWorkoutSession = () => {
+    setActiveWorkoutType('workout2');
     const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
     const startMs = startGlobalWorkoutClock(null, existingSecs);
     setWorkoutElapsedSecs(existingSecs);
@@ -190,6 +238,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
       workoutActive: true,
       workoutDurationSecs: existingSecs,
       workoutStartMs: startMs,
+      activeWorkoutType: 'workout2',
       exercises: mwfExercises
     });
 
@@ -228,9 +277,13 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
       }
     });
 
+    const sessionTitle = activeWorkoutType === 'workout2'
+      ? `Workout #2: Calves & Abs Routine`
+      : `Workout #1: ${currentDayProgram.dayName}`;
+
     const newCompletedWorkout = {
       workoutId: `workout_${Date.now()}`,
-      workoutName: `Workout #${savedWorkouts.length + 1}`,
+      workoutName: sessionTitle,
       dayName: currentDayProgram.dayName,
       date: dailyLog.date,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -249,12 +302,59 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     onUpdateLog({
       workoutActive: false,
       workoutDurationSecs: 0,
+      activeWorkoutType: null,
       exercises: [],
       savedWorkouts: updatedSavedWorkouts,
       workoutSummary: newCompletedWorkout
     });
 
+    setActiveWorkoutType(null);
     setWorkoutElapsedSecs(0);
+  };
+
+  const handleDirectVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const existingVids = dailyLog?.videos || [];
+    if (existingVids.length >= 5) {
+      alert('Maximum 5 exercise form videos allowed per day.');
+      return;
+    }
+
+    setVideoLoading(true);
+    try {
+      const validation = await validateVideoDuration(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        setVideoLoading(false);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const videoDataUrl = evt.target.result;
+        const keyframes = await extractVideoFrames(file);
+
+        const newVideo = {
+          id: `vid_${Date.now()}`,
+          name: file.name || `Form Clip #${existingVids.length + 1}`,
+          dataUrl: videoDataUrl,
+          keyframes,
+          duration: Math.round(validation.duration),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        const updated = [...existingVids, newVideo];
+        onUpdateLog({ videos: updated });
+        setVideoLoading(false);
+        alert('📹 Form Video attached & keyframes extracted for 23:00 AI Evaluation!');
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      alert('Error processing video: ' + err.message);
+      setVideoLoading(false);
+    }
   };
 
   const handleDeleteSavedWorkout = (workoutIdOrIdx) => {
@@ -868,7 +968,9 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 <span className={`badge ${workoutActive ? 'badge-cyan' : 'badge-amber'}`}>
                   <Timer size={12} className={workoutActive ? 'spin' : ''} /> {workoutActive ? 'WORKOUT IN PROGRESS' : 'TIMER PAUSED ⏸️'}
                 </span>
-                <h2 style={{ fontSize: '1.3rem', marginTop: '0.25rem' }}>{currentDayProgram.dayName}</h2>
+                <h2 style={{ fontSize: '1.3rem', marginTop: '0.25rem' }}>
+                  {activeWorkoutType === 'workout2' ? '⚡ Workout #2: Calves & Abs Routine' : `🏋️ Workout #1: ${currentDayProgram.dayName}`}
+                </h2>
               </div>
 
               <div style={{ textAlign: 'right' }}>
@@ -879,7 +981,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
               {workoutActive ? (
                 <button onClick={handlePauseWorkout} className="btn-secondary" style={{ flex: 1 }}>
                   <Pause size={16} /> Pause Timer
@@ -899,6 +1001,40 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 🏁 FINISH WORKOUT <Check size={16} />
               </button>
             </div>
+
+            {/* DIRECT VIDEO UPLOAD BUTTON FOR 23:00 AI EVALUATION */}
+            <label style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(6, 182, 212, 0.4)',
+              borderRadius: '12px',
+              padding: '0.65rem 0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: videoLoading || (dailyLog.videos?.length || 0) >= 5 ? 'not-allowed' : 'pointer',
+              opacity: videoLoading || (dailyLog.videos?.length || 0) >= 5 ? 0.7 : 1
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                <Camera size={18} color="var(--primary-cyan)" />
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    📹 Attach 20s Form Video for 23:00 AI
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    {dailyLog.videos?.length || 0} / 5 Clips Attached for Today's AI Review
+                  </div>
+                </div>
+              </div>
+              <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>{videoLoading ? 'EXTRACTING...' : '+ UPLOAD VIDEO'}</span>
+              <input
+                type="file"
+                accept="video/*"
+                capture="environment"
+                onChange={handleDirectVideoUpload}
+                disabled={videoLoading || (dailyLog.videos?.length || 0) >= 5}
+                style={{ display: 'none' }}
+              />
+            </label>
           </div>
 
           {/* Rest Timer Banner: Active Countdown OR Red Expired Alert with OK Button */}
@@ -1038,12 +1174,14 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <span className="badge badge-amber"><Flame size={12} /> STAGE 1: WARMUP</span>
-                  <h3 style={{ fontSize: '1.15rem', marginTop: '0.25rem' }}>{currentDayProgram.warmupTitle}</h3>
+                  <h3 style={{ fontSize: '1.15rem', marginTop: '0.25rem' }}>
+                    {activeWorkoutType === 'workout2' ? 'Calves & Abs Warmup' : currentDayProgram.warmupTitle}
+                  </h3>
                 </div>
               </div>
 
-              {/* MON / WED / FRI CARDIO & CALVES / TIBIALIS SPECIAL ROUTINE CARD */}
-              {currentDayProgram.includeMonWedFri && (
+              {/* ONLY SHOW WORKOUT #2 CARD IF ACTIVE WORKOUT TYPE IS WORKOUT #2 */}
+              {activeWorkoutType === 'workout2' ? (
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))',
                   border: '1px solid var(--primary-cyan)',
@@ -1098,48 +1236,49 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                     })}
                   </div>
                 </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {(currentDayProgram?.warmup || []).map((item) => {
-                  const isChecked = warmupChecks[item.id] || false;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleToggleWarmupCheck(item.id, item.rest)}
-                      style={{
-                        background: isChecked ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 6, 23, 0.5)',
-                        border: isChecked ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-card)',
-                        borderRadius: '14px',
-                        padding: '0.85rem 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
-                        <div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
-                            {item.name}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Target: {item.reps || item.duration} {item.rest ? `(${item.rest}s rest)` : ''}
+              ) : (
+                /* WORKOUT #1 WARMUP ITEMS ONLY */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {(currentDayProgram?.warmup || []).map((item) => {
+                    const isChecked = warmupChecks[item.id] || false;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleToggleWarmupCheck(item.id, item.rest)}
+                        style={{
+                          background: isChecked ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 6, 23, 0.5)',
+                          border: isChecked ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-card)',
+                          borderRadius: '14px',
+                          padding: '0.85rem 1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
+                              {item.name}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Target: {item.reps || item.duration} {item.rest ? `(${item.rest}s rest)` : ''}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <button
                 onClick={() => setActiveStage('main')}
                 className="btn-primary"
                 style={{ width: '100%', marginTop: '1.25rem' }}
               >
-                Proceed to Main Workout Exercises <Dumbbell size={16} />
+                Proceed to Main Exercises <Dumbbell size={16} />
               </button>
             </div>
           )}
@@ -1147,203 +1286,156 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           {/* STAGE 2: MAIN EXERCISES & SUPERSETS */}
           {activeStage === 'main' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* MON / WED / FRI CARDIO & CALVES / TIBIALIS ROUTINE CARD */}
-              {currentDayProgram.includeMonWedFri && (
-                <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))', borderColor: 'var(--primary-cyan)' }}>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Zap size={18} /> {MON_WED_FRI_ROUTINE.title}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {MON_WED_FRI_ROUTINE.items.map((item) => {
-                      const isChecked = mwfChecks[item.id] || false;
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => handleToggleMwfCheck(item.id, item.restSec)}
-                          style={{
-                            background: isChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
-                            border: isChecked ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
-                            borderRadius: '12px',
-                            padding: '0.75rem 0.85rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                            {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
-                            <div>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
-                                {item.name}
-                              </div>
-                              {item.isSuperset ? (
-                                <div style={{ fontSize: '0.72rem', color: 'var(--accent-amber)', marginTop: '0.15rem' }}>
-                                  {item.exercises.join(' + ')} ({item.sets} sets)
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                                  Target: {item.reps} {item.sets ? `(${item.sets} sets)` : ''} {item.rest ? `• Rest ${item.rest}` : ''}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
-                            {item.category}
+              {/* IF WORKOUT #1 IS ACTIVE: SHOW PRESETS PICKER & CALISTHENICS/SAUNA CARDS */}
+              {activeWorkoutType === 'workout1' && (
+                <>
+                  {/* Tuesday & Friday Calisthenics Special Checkbox */}
+                  {['Tuesday', 'Friday'].includes(selectedDay) && (
+                    <div
+                      onClick={() => onUpdateLog({ calisthenicsCompleted: !calisthenicsCompleted })}
+                      className="glass-card"
+                      style={{
+                        cursor: 'pointer',
+                        background: calisthenicsCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(6, 182, 212, 0.1)',
+                        borderColor: calisthenicsCompleted ? 'var(--accent-emerald)' : 'var(--primary-cyan)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {calisthenicsCompleted ? <CheckSquare color="var(--accent-emerald)" size={24} /> : <Square color="var(--primary-cyan)" size={24} />}
+                        <div>
+                          <h3 style={{ fontSize: '1rem', margin: 0, color: calisthenicsCompleted ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
+                            Calisthenics Skill Session
+                          </h3>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Handstand, Rings, Front Lever, L-Sit & High Pulls
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Tuesday & Friday Calisthenics Special Checkbox */}
-              {['Tuesday', 'Friday'].includes(selectedDay) && (
-                <div
-                  onClick={() => onUpdateLog({ calisthenicsCompleted: !calisthenicsCompleted })}
-                  className="glass-card"
-                  style={{
-                    cursor: 'pointer',
-                    background: calisthenicsCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(6, 182, 212, 0.1)',
-                    borderColor: calisthenicsCompleted ? 'var(--accent-emerald)' : 'var(--primary-cyan)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {calisthenicsCompleted ? <CheckSquare color="var(--accent-emerald)" size={24} /> : <Square color="var(--primary-cyan)" size={24} />}
-                    <div>
-                      <h3 style={{ fontSize: '1rem', margin: 0, color: calisthenicsCompleted ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
-                        Calisthenics Skill Session
-                      </h3>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Handstand, Rings, Front Lever, L-Sit & High Pulls
+                      </div>
+                      <span className={`badge ${calisthenicsCompleted ? 'badge-emerald' : 'badge-cyan'}`}>
+                        {calisthenicsCompleted ? 'DONE ✓' : 'CHECK'}
                       </span>
                     </div>
-                  </div>
-                  <span className={`badge ${calisthenicsCompleted ? 'badge-emerald' : 'badge-cyan'}`}>
-                    {calisthenicsCompleted ? 'DONE ✓' : 'CHECK'}
-                  </span>
-                </div>
-              )}
+                  )}
 
-              {/* Sunday Sauna Special Checkbox */}
-              {selectedDay === 'Sunday' && (
-                <div
-                  onClick={() => onUpdateLog({ saunaCompleted: !saunaCompleted })}
-                  className="glass-card"
-                  style={{
-                    cursor: 'pointer',
-                    background: saunaCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.1)',
-                    borderColor: saunaCompleted ? 'var(--accent-emerald)' : 'var(--accent-amber)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {saunaCompleted ? <CheckSquare color="var(--accent-emerald)" size={24} /> : <Square color="var(--accent-amber)" size={24} />}
-                    <div>
-                      <h3 style={{ fontSize: '1rem', margin: 0, color: saunaCompleted ? 'var(--accent-emerald)' : 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <FlameKindling size={18} color="var(--accent-amber)" /> Post-Workout Sauna Session
-                      </h3>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Heat shock proteins, recovery & muscle relaxation
-                      </span>
-                    </div>
-                  </div>
-                  <span className={`badge ${saunaCompleted ? 'badge-emerald' : 'badge-amber'}`}>
-                    {saunaCompleted ? 'SAUNA DONE ✓' : 'CHECK SAUNA'}
-                  </span>
-                </div>
-              )}
-
-              {/* Preset Exercises Picker for Current Day */}
-              {currentDayProgram.mainExercises && currentDayProgram.mainExercises.length > 0 && (
-                <div className="glass-card">
-                  <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Layers size={16} /> Presets for {selectedDay} (Tap to Open Exercise)
-                  </h3>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                    {currentDayProgram.mainExercises.map((progEx) => {
-                      const ex = exercises.find((e) => e.exerciseId === progEx.id);
-                      const isLoaded = !!ex;
-                      const isDone = ex?.completed || false;
-                      const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
-
-                      return (
-                        <div
-                          key={progEx.id}
-                          onClick={() => handleAddProgramExercise(progEx)}
-                          style={{
-                            background: 'rgba(2, 6, 23, 0.6)',
-                            border: progEx.isSuperset ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-card)',
-                            borderRadius: '12px',
-                            padding: '0.75rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: progEx.isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
-                              {progEx.name}
-                            </div>
-                            {progEx.isSuperset && (
-                              <div style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
-                                {progEx.subExercises?.join(' + ')}
-                              </div>
-                            )}
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                              {progEx.targetSets} sets | {progEx.note}
-                            </div>
-                            {pastRecord && (
-                              <div style={{ fontSize: '0.7rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                                <History size={11} /> Last: <strong>{pastRecord}</strong>
-                              </div>
-                            )}
-                          </div>
-
-                          <button
-                            className={isDone ? 'btn-emerald' : isLoaded ? 'btn-primary' : 'btn-secondary'}
-                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-                          >
-                            {isDone ? 'DONE ✓' : isLoaded ? 'Open Focus' : 'Start'} {isDone ? <CheckCircle2 size={12} /> : <Play size={12} />}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Custom Exercise Selector */}
-                  <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-card)' }}>
-                    <select
-                      value={selectedPresetId}
-                      onChange={(e) => setSelectedPresetId(e.target.value)}
-                      className="input-field"
-                      style={{ flex: 1 }}
+                  {/* Sunday Sauna Special Checkbox */}
+                  {selectedDay === 'Sunday' && (
+                    <div
+                      onClick={() => onUpdateLog({ saunaCompleted: !saunaCompleted })}
+                      className="glass-card"
+                      style={{
+                        cursor: 'pointer',
+                        background: saunaCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.1)',
+                        borderColor: saunaCompleted ? 'var(--accent-emerald)' : 'var(--accent-amber)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
                     >
-                      {PRESET_EXERCISES.map((ex) => (
-                        <option key={ex.id} value={ex.id}>{ex.name} ({ex.muscle})</option>
-                      ))}
-                    </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {saunaCompleted ? <CheckSquare color="var(--accent-emerald)" size={24} /> : <Square color="var(--accent-amber)" size={24} />}
+                        <div>
+                          <h3 style={{ fontSize: '1rem', margin: 0, color: saunaCompleted ? 'var(--accent-emerald)' : 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <FlameKindling size={18} color="var(--accent-amber)" /> Post-Workout Sauna Session
+                          </h3>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Heat shock proteins, recovery & muscle relaxation
+                          </span>
+                        </div>
+                      </div>
+                      <span className={`badge ${saunaCompleted ? 'badge-emerald' : 'badge-amber'}`}>
+                        {saunaCompleted ? 'SAUNA DONE ✓' : 'CHECK SAUNA'}
+                      </span>
+                    </div>
+                  )}
 
-                    <button onClick={handleAddCustomPreset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>
-                      <Plus size={16} /> Open Exercise
-                    </button>
-                  </div>
-                </div>
+                  {/* Preset Exercises Picker for Current Day */}
+                  {currentDayProgram.mainExercises && currentDayProgram.mainExercises.length > 0 && (
+                    <div className="glass-card">
+                      <h3 style={{ fontSize: '0.95rem', color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Layers size={16} /> Presets for {selectedDay} (Tap to Open Focus Runner)
+                      </h3>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                        {currentDayProgram.mainExercises.map((progEx) => {
+                          const ex = exercises.find((e) => e.exerciseId === progEx.id);
+                          const isLoaded = !!ex;
+                          const isDone = ex?.completed || false;
+                          const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
+
+                          return (
+                            <div
+                              key={progEx.id}
+                              onClick={() => handleAddProgramExercise(progEx)}
+                              style={{
+                                background: 'rgba(2, 6, 23, 0.6)',
+                                border: progEx.isSuperset ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-card)',
+                                borderRadius: '12px',
+                                padding: '0.75rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: progEx.isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
+                                  {progEx.name}
+                                </div>
+                                {progEx.isSuperset && (
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
+                                    {progEx.subExercises?.join(' + ')}
+                                  </div>
+                                )}
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                  {progEx.targetSets} sets | {progEx.note}
+                                </div>
+                                {pastRecord && (
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                                    <History size={11} /> Last: <strong>{pastRecord}</strong>
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                className={isDone ? 'btn-emerald' : isLoaded ? 'btn-primary' : 'btn-secondary'}
+                                style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                              >
+                                {isDone ? 'DONE ✓' : isLoaded ? 'Open Focus' : 'Start Focus'} {isDone ? <CheckCircle2 size={12} /> : <Play size={12} />}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom Exercise Selector */}
+                      <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-card)' }}>
+                        <select
+                          value={selectedPresetId}
+                          onChange={(e) => setSelectedPresetId(e.target.value)}
+                          className="input-field"
+                          style={{ flex: 1 }}
+                        >
+                          {PRESET_EXERCISES.map((ex) => (
+                            <option key={ex.id} value={ex.id}>{ex.name} ({ex.muscle})</option>
+                          ))}
+                        </select>
+
+                        <button onClick={handleAddCustomPreset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>
+                          <Plus size={16} /> Open Focus
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
-              {/* Active Logged Exercises List with Edit & Double-Check Delete */}
+              {/* Active Logged Exercises List — Tapping ANY exercise opens Focus Runner Modal */}
               {!Array.isArray(exercises) || exercises.length === 0 ? (
                 <div className="glass-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-                  Tap <strong>Start</strong> on any exercise preset above to begin logging sets & weight!
+                  Tap <strong>Start Focus</strong> on any exercise above to begin logging sets with full timers!
                 </div>
               ) : (
                 exercises.filter(Boolean).map((ex, exIdx) => {
@@ -1355,7 +1447,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                     <div
                       key={exIdx}
                       className="glass-card"
-                      style={{ borderColor: ex.isSuperset ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-card)' }}
+                      style={{ borderColor: ex.isSuperset ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-card)', cursor: 'pointer' }}
+                      onClick={() => setActiveRunnerExercise(ex)}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                         <div>
@@ -1375,14 +1468,14 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <button
-                            onClick={() => setActiveRunnerExercise(ex)}
+                            onClick={(e) => { e.stopPropagation(); setActiveRunnerExercise(ex); }}
                             className={ex.completed ? 'btn-emerald' : 'btn-primary'}
                             style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
                           >
-                            {ex.completed ? 'DONE ✓' : 'Edit / Run'} {ex.completed ? <CheckCircle2 size={12} /> : <Edit2 size={12} />}
+                            {ex.completed ? 'DONE ✓' : 'Open Focus ⏱️'} {ex.completed ? <CheckCircle2 size={12} /> : <Play size={12} />}
                           </button>
                           <button
-                            onClick={() => setDeletingExIdx(exIdx)}
+                            onClick={(e) => { e.stopPropagation(); setDeletingExIdx(exIdx); }}
                             title="Delete Exercise"
                             style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '0.25rem' }}
                           >
@@ -1397,6 +1490,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                           return (
                             <div
                               key={setIdx}
+                              onClick={(e) => e.stopPropagation()}
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
