@@ -30,15 +30,33 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
   // Quick Add from Meal List Modal State
   const [showMealListModal, setShowMealListModal] = useState(false);
 
-  const PRESET_MEALS_VAULT = [
-    { name: 'Grilled Chicken & Sweet Potato', category: 'Lunch', calories: 520, protein: 48, carbs: 55, fat: 10, notes: '200g grilled chicken breast, 200g baked sweet potato, steamed broccoli.' },
-    { name: 'Salmon & Quinoa Bowl', category: 'Dinner', calories: 610, protein: 42, carbs: 48, fat: 22, notes: '200g Atlantic salmon fillet, 150g cooked quinoa, asparagus.' },
-    { name: 'Oatmeal & Whey Protein Shake', category: 'Breakfast', calories: 450, protein: 40, carbs: 52, fat: 8, notes: '80g oats cooked in almond milk, 1 scoop whey protein, 1 tbsp peanut butter.' },
-    { name: 'Steak & Eggs Breakfast', category: 'Breakfast', calories: 650, protein: 55, carbs: 5, fat: 42, notes: '200g sirloin steak, 3 whole eggs fried in butter.' },
-    { name: 'Post-Workout Whey & Banana', category: 'Post-Workout', calories: 280, protein: 30, carbs: 32, fat: 2, notes: '1 scoop whey protein isolate, 1 large ripe banana.' },
-    { name: 'Tuna & Avocado Salad', category: 'Lunch', calories: 420, protein: 38, carbs: 12, fat: 24, notes: '1 canned tuna in water, 1/2 avocado, mixed greens, olive oil dressing.' },
-    { name: 'Cottage Cheese & Berries', category: 'Snacks', calories: 250, protein: 28, carbs: 20, fat: 4, notes: '200g low-fat cottage cheese, 100g fresh blueberries.' }
-  ];
+  // Helper function to extract meals directly from the user's active AI Meal Plan
+  const getMealPlanItems = () => {
+    try {
+      const savedDraft = localStorage.getItem('gymslab_meal_plan_draft');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        const planMeals = parsed.currentProposal?.meals || parsed.meals || [];
+        if (planMeals.length > 0) {
+          return planMeals.map((m, idx) => ({
+            id: `plan_meal_${idx}_${Date.now()}`,
+            name: m.mealName || m.name,
+            category: m.category || selectedMealCategory || 'Meal',
+            calories: Number(m.calories) || 0,
+            protein: Number(m.protein) || 0,
+            carbs: Number(m.carbs) || 0,
+            fat: Number(m.fat) || 0,
+            notes: (Array.isArray(m.ingredients) ? `Ingredients:\n• ${m.ingredients.join('\n• ')}\n\n` : '') + (m.instructions || m.notes || '')
+          }));
+        }
+      }
+    } catch (e) {
+      console.log('Error reading meal plan for list:', e);
+    }
+    return [];
+  };
+
+  const mealPlanList = getMealPlanItems();
 
   const handleAddFromMealList = (presetMeal) => {
     const newMeal = {
@@ -809,14 +827,14 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         />
       )}
 
-      {/* MODAL 6: Quick Add from Saved Meal List */}
+      {/* MODAL 6: Quick Add from AI Meal Plan */}
       {showMealListModal && (
         <div className="modal-overlay" onClick={() => setShowMealListModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <BookOpen size={20} color="var(--accent-emerald)" />
-                <h3 style={{ fontSize: '1.15rem', margin: 0 }}>Add from Saved Meal List</h3>
+                <h3 style={{ fontSize: '1.15rem', margin: 0 }}>Add from Your AI Meal Plan</h3>
               </div>
               <button onClick={() => setShowMealListModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                 <X size={18} />
@@ -824,42 +842,62 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Tap any pre-configured high-protein athlete meal below to log it into today's food log:
+              Select a meal directly from your active AI Meal Plan to log into today's macro tracker:
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '380px', overflowY: 'auto', marginBottom: '1.25rem' }}>
-              {PRESET_MEALS_VAULT.map((m, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleAddFromMealList(m)}
-                  style={{
-                    background: 'rgba(2, 6, 23, 0.6)',
-                    border: '1px solid var(--border-card)',
-                    borderRadius: '14px',
-                    padding: '0.85rem 1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer'
+            {mealPlanList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', background: 'rgba(2, 6, 23, 0.6)', borderRadius: '16px', border: '1px solid var(--border-card)', marginBottom: '1.25rem' }}>
+                <ChefHat size={36} color="var(--primary-cyan)" style={{ marginBottom: '0.5rem' }} />
+                <h4 style={{ fontSize: '1rem', marginBottom: '0.3rem' }}>No AI Meal Plan Found Yet</h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                  Generate your custom AI Meal Plan first to populate your meal list with exact ingredients and recipes!
+                </p>
+                <button
+                  onClick={() => {
+                    setShowMealListModal(false);
+                    setShowPlannerModal(true);
                   }}
+                  className="btn-emerald"
+                  style={{ width: '100%' }}
                 >
-                  <div>
-                    <span className="badge badge-emerald" style={{ fontSize: '0.65rem', marginBottom: '0.2rem' }}>{m.category}</span>
-                    <h4 style={{ fontSize: '0.95rem', margin: '0.2rem 0', color: 'var(--text-main)' }}>{m.name}</h4>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem' }}>
-                      <span>🔥 {m.calories} kcal</span>
-                      <span>💪 P: {m.protein}g</span>
-                      <span>🌾 C: {m.carbs}g</span>
-                      <span>🥑 F: {m.fat}g</span>
+                  Generate AI Meal Plan & Recipes <Sparkles size={16} />
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '380px', overflowY: 'auto', marginBottom: '1.25rem' }}>
+                {mealPlanList.map((m, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleAddFromMealList(m)}
+                    style={{
+                      background: 'rgba(2, 6, 23, 0.6)',
+                      border: '1px solid var(--border-card)',
+                      borderRadius: '14px',
+                      padding: '0.85rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div>
+                      <span className="badge badge-emerald" style={{ fontSize: '0.65rem', marginBottom: '0.2rem' }}>{m.category}</span>
+                      <h4 style={{ fontSize: '0.95rem', margin: '0.2rem 0', color: 'var(--text-main)' }}>{m.name}</h4>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem' }}>
+                        <span>🔥 {m.calories} kcal</span>
+                        <span>💪 P: {m.protein}g</span>
+                        <span>🌾 C: {m.carbs}g</span>
+                        <span>🥑 F: {m.fat}g</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <button className="btn-emerald" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                    + Log Meal <Plus size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <button className="btn-emerald" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                      + Log Meal <Plus size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button onClick={() => setShowMealListModal(false)} className="btn-secondary" style={{ width: '100%' }}>
               Close Meal List
