@@ -952,12 +952,12 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
               {savedWorkouts.length === 0 && !workoutActive && workoutElapsedSecs === 0 && exercises.length === 0 && (
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '0.4rem' }}>
-                  No workout objects recorded for {selectedDate}. Click <strong>Start Workout #1</strong> or <strong>Start Workout #2</strong> above!
+                  No workout objects recorded for {dailyLog?.date || selectedDay}. Click <strong>Start Workout #1</strong> or <strong>Start Workout #2</strong> above!
                 </div>
               )}
 
               {/* Quick Jump to Yesterday's Workout if viewing today */}
-              {selectedDate === todayStr && (
+              {dailyLog?.date === new Date().toISOString().slice(0, 10) && (
                 <div
                   onClick={() => {
                     const prev = new Date();
@@ -1514,64 +1514,29 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {setsList.map((set, setIdx) => {
-                          const oneRepMax = Math.round((Number(set.weight) || 0) * (1 + (Number(set.reps) || 0) / 30));
-                          return (
-                            <div
-                              key={setIdx}
-                              onClick={(e) => e.stopPropagation()}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                background: set.completed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 6, 23, 0.5)',
-                                border: set.completed ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-card)',
-                                borderRadius: '12px',
-                                padding: '0.6rem 0.85rem'
-                              }}
-                            >
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', width: '45px' }}>
-                                Set {set.setNum}
-                              </span>
-
-                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                <input
-                                  type="number"
-                                  value={set.weight}
-                                  onFocus={(e) => e.target.select()}
-                                  onChange={(e) => handleUpdateSet(exIdx, setIdx, 'weight', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                                  className="input-field"
-                                  style={{ padding: '0.4rem', textAlign: 'center' }}
-                                />
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>kg</span>
-                              </div>
-
-                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                <input
-                                  type="number"
-                                  value={set.reps}
-                                  onFocus={(e) => e.target.select()}
-                                  onChange={(e) => handleUpdateSet(exIdx, setIdx, 'reps', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                                  className="input-field"
-                                  style={{ padding: '0.4rem', textAlign: 'center' }}
-                                />
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>reps</span>
-                              </div>
-
-                              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', width: '60px', textAlign: 'right' }}>
-                                1RM: {oneRepMax}k
-                              </div>
-
-                              <button
-                                onClick={() => handleUpdateSet(exIdx, setIdx, 'completed', !set.completed)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}
-                              >
-                                {set.completed ? <CheckSquare color="var(--accent-emerald)" size={22} /> : <Square color="var(--text-dim)" size={22} />}
-                              </button>
-                            </div>
-                          );
-                        })}
+                      {/* Sleek Summary Chips of Logged Sets (Tap Card to Open Focus Runner for Set Logging) */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
+                        {setsList.map((set, setIdx) => (
+                          <div
+                            key={setIdx}
+                            style={{
+                              fontSize: '0.73rem',
+                              fontWeight: 700,
+                              background: set.completed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                              border: set.completed ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
+                              color: set.completed ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                              borderRadius: '8px',
+                              padding: '0.3rem 0.6rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            <span>Set {set.setNum}:</span>
+                            <span style={{ color: 'var(--text-main)' }}>{set.weight ?? 0}kg × {set.reps ?? 0}</span>
+                            {set.completed && <Check size={12} color="var(--accent-emerald)" />}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
