@@ -107,7 +107,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
   // Saved Past Workouts for Today (Strictly isolated to dailyLog.date)
   const savedWorkouts = (dailyLog?.savedWorkouts || []).filter(
-    (w) => Boolean(w) && (!w.date || w.date === dailyLog.date)
+    (w) => Boolean(w) && (!w.date || !dailyLog?.date || w.date === dailyLog.date)
   );
 
   // Single-Source-of-Truth Timer Effect

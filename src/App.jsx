@@ -350,7 +350,18 @@ export default function App() {
   const handleUpdateDailyLog = async (fieldsToUpdate) => {
     const updated = { ...dailyLog, ...fieldsToUpdate, travelMode, date: selectedDate };
     setDailyLog(updated);
-    await saveDailyLog(selectedDate, updated);
+    const saved = await saveDailyLog(selectedDate, updated);
+
+    // Keep allDailyLogsList updated in memory for real-time historical queries
+    setAllDailyLogsList((prev) => {
+      const idx = prev.findIndex((l) => l.date === selectedDate);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = saved;
+        return copy;
+      }
+      return [...prev, saved];
+    });
   };
 
   const handleSaveMorningWeight = async (w) => {
