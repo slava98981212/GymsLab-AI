@@ -2,24 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, CheckSquare, Square, Timer, Check, X, History, Dumbbell, Award, ArrowRight, CheckCircle2, Layers } from 'lucide-react';
 import { triggerGlobalRestTimer, getGlobalRestState, dismissRestExpiredAlert } from '../services/timerEngine';
 
-export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerciseSets, onStartRestTimer, onClose }) {
+export default function ExerciseRunnerModal({ exercise, pastRecord, pastSets, onSaveExerciseSets, onStartRestTimer, onClose }) {
   const isSuperset = exercise.isSuperset || (exercise.subExercises && exercise.subExercises.length > 0);
   const subA = exercise.subExercises && exercise.subExercises[0] ? exercise.subExercises[0] : 'Movement A';
   const subB = exercise.subExercises && exercise.subExercises[1] ? exercise.subExercises[1] : 'Movement B';
 
-  const defaultSets = isSuperset
-    ? [
-        { setNum: 1, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
-        { setNum: 2, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
-        { setNum: 3, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
-        { setNum: 4, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false }
-      ]
-    : [
-        { setNum: 1, weight: 60, reps: 10, completed: false },
-        { setNum: 2, weight: 60, reps: 10, completed: false },
-        { setNum: 3, weight: 60, reps: 10, completed: false },
-        { setNum: 4, weight: 60, reps: 10, completed: false }
-      ];
+  const defaultSets = (() => {
+    if (pastSets && pastSets.length > 0) {
+      return pastSets.map((ps, idx) => {
+        if (isSuperset) {
+          return {
+            setNum: idx + 1,
+            exAWeight: ps.exAWeight ?? ps.weight ?? 60,
+            exAReps: ps.exAReps ?? ps.reps ?? 8,
+            exAChecked: false,
+            exBWeight: ps.exBWeight ?? 0,
+            exBReps: ps.exBReps ?? 10,
+            exBChecked: false
+          };
+        }
+        return {
+          setNum: idx + 1,
+          weight: ps.weight ?? 60,
+          reps: ps.reps ?? 10,
+          completed: false
+        };
+      });
+    }
+    return isSuperset
+      ? [
+          { setNum: 1, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
+          { setNum: 2, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
+          { setNum: 3, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false },
+          { setNum: 4, exAWeight: 60, exAReps: 8, exAChecked: false, exBWeight: 0, exBReps: 10, exBChecked: false }
+        ]
+      : [
+          { setNum: 1, weight: 60, reps: 10, completed: false },
+          { setNum: 2, weight: 60, reps: 10, completed: false },
+          { setNum: 3, weight: 60, reps: 10, completed: false },
+          { setNum: 4, weight: 60, reps: 10, completed: false }
+        ];
+  })();
 
   const [sets, setSets] = useState(
     exercise.sets && exercise.sets.length > 0 ? exercise.sets : defaultSets
@@ -170,6 +193,25 @@ export default function ExerciseRunnerModal({ exercise, pastRecord, onSaveExerci
             <X size={22} />
           </button>
         </div>
+
+        {pastSets && pastSets.length > 0 && (
+          <div style={{
+            background: 'rgba(6, 182, 212, 0.15)',
+            border: '1px solid var(--primary-cyan)',
+            borderRadius: '12px',
+            padding: '0.55rem 0.85rem',
+            fontSize: '0.75rem',
+            color: 'var(--primary-cyan)',
+            fontWeight: 600,
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}>
+            <History size={14} />
+            <span>Pre-filled with your exact weights & reps from last time! Adjust any set if you did differently today.</span>
+          </div>
+        )}
 
         {/* Elapsed Timer / Frozen Duration & Rest Timer Card */}
         <div style={{ display: 'grid', gridTemplateColumns: isCompleted ? '1fr' : '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>

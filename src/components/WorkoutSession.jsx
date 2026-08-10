@@ -275,6 +275,33 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     return null;
   };
 
+  const getPreviousSetsForExercise = (exerciseId, exerciseName) => {
+    if (!allDailyLogs || allDailyLogs.length === 0) return null;
+    for (let i = allDailyLogs.length - 1; i >= 0; i--) {
+      const pastLog = allDailyLogs[i];
+      if (pastLog.date === dailyLog.date) continue;
+
+      // Check savedWorkouts array first
+      if (pastLog.savedWorkouts && pastLog.savedWorkouts.length > 0) {
+        for (let w = pastLog.savedWorkouts.length - 1; w >= 0; w--) {
+          const exMatch = pastLog.savedWorkouts[w].exercises?.find((e) => e.exerciseId === exerciseId || (exerciseName && e.name?.toLowerCase().includes(exerciseName.toLowerCase())));
+          if (exMatch && exMatch.sets && exMatch.sets.length > 0) {
+            return exMatch.sets;
+          }
+        }
+      }
+
+      // Check exercises directly
+      if (pastLog.exercises) {
+        const match = pastLog.exercises.find((e) => e.exerciseId === exerciseId || (exerciseName && e.name?.toLowerCase().includes(exerciseName.toLowerCase())));
+        if (match && match.sets && match.sets.length > 0) {
+          return match.sets;
+        }
+      }
+    }
+    return null;
+  };
+
   const handleToggleWarmupCheck = (id, restSec) => {
     const next = { ...warmupChecks, [id]: !warmupChecks[id] };
     setWarmupChecks(next);
@@ -307,18 +334,28 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     let updatedExercises = [...exercises];
 
     if (!existing) {
-      const targetSetsCount = progEx.targetSets || 4;
+      const pastSets = getPreviousSetsForExercise(progEx.id, progEx.name);
+      const targetSetsCount = progEx.targetSets || (pastSets ? pastSets.length : 4);
       const initialSets = [];
 
-      const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
-      let defaultWeight = 60;
-      if (pastRecord) {
-        const matchW = pastRecord.match(/(\d+)\s*kg/);
-        if (matchW) defaultWeight = parseFloat(matchW[1]);
-      }
-
-      for (let i = 1; i <= targetSetsCount; i++) {
-        initialSets.push({ setNum: i, weight: defaultWeight, reps: progEx.targetReps || 10, completed: false });
+      if (pastSets && pastSets.length > 0) {
+        for (let i = 0; i < targetSetsCount; i++) {
+          const pastSet = pastSets[i] || pastSets[pastSets.length - 1];
+          initialSets.push({
+            setNum: i + 1,
+            weight: pastSet.weight ?? 60,
+            reps: pastSet.reps ?? (progEx.targetReps || 10),
+            exAWeight: pastSet.exAWeight ?? 60,
+            exAReps: pastSet.exAReps ?? 8,
+            exBWeight: pastSet.exBWeight ?? 0,
+            exBReps: pastSet.exBReps ?? 10,
+            completed: false
+          });
+        }
+      } else {
+        for (let i = 1; i <= targetSetsCount; i++) {
+          initialSets.push({ setNum: i, weight: 60, reps: progEx.targetReps || 10, completed: false });
+        }
       }
 
       const newEx = {
@@ -351,17 +388,31 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     if (existing) {
       setActiveRunnerExercise(existing);
     } else {
+      const pastSets = getPreviousSetsForExercise(exObj.id, exObj.name);
+      let initialSets = [];
+
+      if (pastSets && pastSets.length > 0) {
+        initialSets = pastSets.map((ps, idx) => ({
+          setNum: idx + 1,
+          weight: ps.weight ?? 60,
+          reps: ps.reps ?? 10,
+          completed: false
+        }));
+      } else {
+        initialSets = [
+          { setNum: 1, weight: 60, reps: 10, completed: false },
+          { setNum: 2, weight: 60, reps: 10, completed: false },
+          { setNum: 3, weight: 60, reps: 10, completed: false },
+          { setNum: 4, weight: 60, reps: 10, completed: false }
+        ];
+      }
+
       const newEx = {
         exerciseId: exObj.id,
         name: exObj.name,
         restSec: 120,
         startedAt: Date.now(),
-        sets: [
-          { setNum: 1, weight: 60, reps: 10, completed: false },
-          { setNum: 2, weight: 60, reps: 10, completed: false },
-          { setNum: 3, weight: 60, reps: 10, completed: false },
-          { setNum: 4, weight: 60, reps: 10, completed: false }
-        ]
+        sets: initialSets
       };
 
       updatedExercises.push(newEx);
@@ -1173,6 +1224,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           key={activeRunnerExercise.exerciseId || activeRunnerExercise.name}
           exercise={activeRunnerExercise}
           pastRecord={getPreviousLogForExercise(activeRunnerExercise.exerciseId, activeRunnerExercise.name)}
+          pastSets={getPreviousSetsForExercise(activeRunnerExercise.exerciseId, activeRunnerExercise.name)}
           onSaveExerciseSets={handleSaveSetsFromRunner}
           onStartRestTimer={startRestTimer}
           onClose={() => setActiveRunnerExercise(null)}
