@@ -1327,12 +1327,13 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                         <Layers size={16} /> Presets for {selectedDay} (Tap to Open Focus Runner)
                       </h3>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1rem' }}>
                         {currentDayProgram.mainExercises.map((progEx) => {
-                          const ex = exercises.find((e) => e.exerciseId === progEx.id);
+                          const ex = exercises.find((e) => e.exerciseId === progEx.id || e.name === progEx.name);
                           const isLoaded = !!ex;
                           const isDone = ex?.completed || false;
                           const pastRecord = getPreviousLogForExercise(progEx.id, progEx.name);
+                          const setsList = ex?.sets || [];
 
                           return (
                             <div
@@ -1341,39 +1342,69 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                               style={{
                                 background: 'rgba(2, 6, 23, 0.6)',
                                 border: progEx.isSuperset ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-card)',
-                                borderRadius: '12px',
-                                padding: '0.75rem 1rem',
+                                borderRadius: '14px',
+                                padding: '0.85rem 1rem',
                                 display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
+                                flexDirection: 'column',
+                                gap: '0.5rem',
                                 cursor: 'pointer'
                               }}
                             >
-                              <div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: progEx.isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
-                                  {progEx.name}
-                                </div>
-                                {progEx.isSuperset && (
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
-                                    {progEx.subExercises?.join(' + ')}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div>
+                                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: progEx.isSuperset ? 'var(--accent-amber)' : 'var(--text-main)' }}>
+                                    {progEx.name}
                                   </div>
-                                )}
-                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                                  {progEx.targetSets} sets | {progEx.note}
-                                </div>
-                                {pastRecord && (
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                                    <History size={11} /> Last: <strong>{pastRecord}</strong>
+                                  {progEx.isSuperset && (
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--accent-amber)', marginTop: '0.2rem' }}>
+                                      {progEx.subExercises?.join(' + ')}
+                                    </div>
+                                  )}
+                                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                    {progEx.targetSets} sets | {progEx.note}
                                   </div>
-                                )}
+                                  {pastRecord && (
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                                      <History size={11} /> Last: <strong>{pastRecord}</strong>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleAddProgramExercise(progEx); }}
+                                  className={isDone ? 'btn-emerald' : isLoaded ? 'btn-primary' : 'btn-secondary'}
+                                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                                >
+                                  {isDone ? 'DONE ✓' : isLoaded ? 'Open Focus ⏱️' : 'Start Focus ⏱️'} {isDone ? <CheckCircle2 size={12} /> : <Play size={12} />}
+                                </button>
                               </div>
 
-                              <button
-                                className={isDone ? 'btn-emerald' : isLoaded ? 'btn-primary' : 'btn-secondary'}
-                                style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-                              >
-                                {isDone ? 'DONE ✓' : isLoaded ? 'Open Focus' : 'Start Focus'} {isDone ? <CheckCircle2 size={12} /> : <Play size={12} />}
-                              </button>
+                              {/* Sleek Logged Sets Summary Chips */}
+                              {setsList.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem' }}>
+                                  {setsList.map((set, setIdx) => (
+                                    <div
+                                      key={setIdx}
+                                      style={{
+                                        fontSize: '0.73rem',
+                                        fontWeight: 700,
+                                        background: set.completed ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                                        border: set.completed ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
+                                        color: set.completed ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                                        borderRadius: '8px',
+                                        padding: '0.3rem 0.6rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.35rem'
+                                      }}
+                                    >
+                                      <span>Set {set.setNum}:</span>
+                                      <span style={{ color: 'var(--text-main)' }}>{set.weight ?? 0}kg × {set.reps ?? 0}</span>
+                                      {set.completed && <Check size={12} color="var(--accent-emerald)" />}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -1401,20 +1432,22 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 </>
               )}
 
-              {/* Active Logged Exercises List — Tapping ANY exercise opens Focus Runner Modal */}
-              {!Array.isArray(exercises) || exercises.length === 0 ? (
-                <div className="glass-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-dim)' }}>
-                  Tap <strong>Start Focus</strong> on any exercise above to begin logging sets with full timers!
-                </div>
-              ) : (
-                exercises.filter(Boolean).map((ex, exIdx) => {
-                  if (!ex || typeof ex !== 'object') return null;
+              {/* Extra Custom / Non-Preset Exercises List (Only renders movements NOT already in the Presets Card above) */}
+              {(() => {
+                const extraExercises = activeWorkoutType === 'workout2'
+                  ? exercises
+                  : (exercises || []).filter((ex) => !currentDayProgram.mainExercises?.some((p) => p.id === ex.exerciseId || p.name === ex.name));
+
+                if (extraExercises.length === 0) return null;
+
+                return extraExercises.filter(Boolean).map((ex, exIdx) => {
+                  const originalExIdx = exercises.indexOf(ex);
                   const pastRecord = getPreviousLogForExercise(ex.exerciseId, ex.name);
                   const setsList = Array.isArray(ex.sets) ? ex.sets : [];
 
                   return (
                     <div
-                      key={exIdx}
+                      key={ex.exerciseId || exIdx}
                       className="glass-card"
                       style={{ borderColor: ex.isSuperset ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-card)', cursor: 'pointer' }}
                       onClick={() => setActiveRunnerExercise(ex)}
@@ -1444,7 +1477,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                             {ex.completed ? 'DONE ✓' : 'Open Focus ⏱️'} {ex.completed ? <CheckCircle2 size={12} /> : <Play size={12} />}
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setDeletingExIdx(exIdx); }}
+                            onClick={(e) => { e.stopPropagation(); setDeletingExIdx(originalExIdx >= 0 ? originalExIdx : exIdx); }}
                             title="Delete Exercise"
                             style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '0.25rem' }}
                           >
@@ -1453,7 +1486,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                         </div>
                       </div>
 
-                      {/* Sleek Summary Chips of Logged Sets (Tap Card to Open Focus Runner for Set Logging) */}
+                      {/* Sleek Summary Chips of Logged Sets */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
                         {setsList.map((set, setIdx) => (
                           <div
@@ -1479,8 +1512,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                       </div>
                     </div>
                   );
-                })
-              )}
+                });
+              })()}
 
               <button
                 onClick={() => {
