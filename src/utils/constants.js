@@ -252,7 +252,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
       { id: 'thu_m2', name: 'Cable Bicep Curl', targetSets: 3, targetReps: 12, restSec: 90, note: 'Rest 90s' },
       { id: 'thu_m3', name: 'Cable Hammer Curls', targetSets: 4, targetReps: 12, restSec: 90, note: 'Rest 90s' },
       { id: 'thu_m4', name: 'Reverse Pec Deck (Rear Delt Fly)', targetSets: 4, targetReps: 15, restSec: 90, note: 'Rest 90s' },
-      { id: 'thu_m5', name: 'Weighted Supinated Pull-ups', targetSets: 4, targetReps: 8, restSec: 180, note: 'Rest 3 min' }
+      { id: 'thu_m5', name: 'Weighted Supinated Pull-ups', targetSets: 4, targetReps: 8, restSec: 180, note: 'Rest 3 min' },
+      { id: 'thu_m6', name: 'Leg Extension', targetSets: 3, targetReps: 12, restSec: 90, note: '3 sets x 12 reps' },
+      { id: 'thu_m7', name: 'Lying Leg Curl', targetSets: 3, targetReps: 12, restSec: 90, note: '3 sets x 12 reps' }
     ],
     cooldown: [
       { id: 'thu_c1', name: 'Toes To Bar', reps: '20 reps', targetSets: 3, type: 'abs' },
@@ -297,5 +299,7 @@ export const PRESET_EXERCISES = [
   { id: 'e9', name: 'Seated Cable Row', muscle: 'Back' },
   { id: 'e10', name: 'Romanian Deadlift', muscle: 'Hamstrings' },
   { id: 'e11', name: 'Lateral Dumbbell Raise', muscle: 'Shoulders' },
-  { id: 'e12', name: 'Leg Press', muscle: 'Legs' }
+  { id: 'e12', name: 'Leg Press', muscle: 'Legs' },
+  { id: 'e13', name: 'Leg Extension', muscle: 'Quads' },
+  { id: 'e14', name: 'Lying Leg Curl', muscle: 'Hamstrings' }
 ];
