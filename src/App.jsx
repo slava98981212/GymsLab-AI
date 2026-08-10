@@ -579,29 +579,53 @@ export default function App() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <div>
-                  <span className={`badge ${dailyLog.aiDailySummary ? 'badge-emerald' : 'badge-cyan'}`}>
-                    <Sparkles size={12} /> {dailyLog.aiDailySummary ? '23:00 EVALUATION READY ✓' : 'DAILY 23:00 EVALUATION'}
+                  <span className={`badge ${dailyLog.aiDailySummary && selectedDate !== todayStr || (selectedDate === todayStr && new Date().getHours() >= 23) ? 'badge-emerald' : 'badge-cyan'}`}>
+                    <Sparkles size={12} /> {
+                      selectedDate === todayStr && new Date().getHours() < 23
+                        ? 'DAILY 23:00 EVALUATION (Scheduled 23:00)'
+                        : dailyLog.aiDailySummary
+                        ? '23:00 EVALUATION READY ✓'
+                        : 'DAILY 23:00 EVALUATION'
+                    }
                   </span>
                   <h3 style={{ fontSize: '1.1rem', marginTop: '0.25rem' }}>
-                    {dailyLog.aiDailySummary ? `Your day grade (${dailyLog.aiDailySummary.grade}) and evaluation is ready` : 'End-of-Day AI Summary'}
+                    {
+                      selectedDate === todayStr && new Date().getHours() < 23
+                        ? 'End-of-Day AI Summary & Grade (Triggers at 23:00)'
+                        : dailyLog.aiDailySummary
+                        ? `Your day grade (${dailyLog.aiDailySummary.grade}) and evaluation is ready`
+                        : 'End-of-Day AI Summary'
+                    }
                   </h3>
                 </div>
-                {dailyLog.aiDailySummary?.grade && (
+                {dailyLog.aiDailySummary?.grade && (selectedDate !== todayStr || new Date().getHours() >= 23) && (
                   <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-emerald)', background: 'rgba(16, 185, 129, 0.15)', padding: '0.2rem 0.65rem', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                     {dailyLog.aiDailySummary.grade}
                   </div>
                 )}
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                {dailyLog.aiDailySummary?.headline || 'Evaluates total workout time, exercises, weights, reps, sets, progressive overload, 3.5L water, 10k steps, sauna, and form videos.'}
+                {
+                  selectedDate === todayStr && new Date().getHours() < 23
+                    ? 'AI Coach automatically synthesizes total workout time, exercises, weights, reps, sets, 3.5L water, 10k steps, sauna, and form videos at 23:00 tonight.'
+                    : dailyLog.aiDailySummary?.headline || 'Evaluates total workout time, exercises, weights, reps, sets, progressive overload, 3.5L water, 10k steps, sauna, and form videos.'
+                }
               </p>
 
               <button
                 onClick={(e) => { e.stopPropagation(); setShowDailySummaryModal(true); }}
-                className={dailyLog.aiDailySummary ? 'btn-emerald' : 'btn-primary'}
+                className={dailyLog.aiDailySummary && (selectedDate !== todayStr || new Date().getHours() >= 23) ? 'btn-emerald' : 'btn-primary'}
                 style={{ width: '100%' }}
               >
-                {dailyLog.aiDailySummary ? 'View 23:00 AI Evaluation Report ✓' : isAutoGenerating23 ? '⏳ Auto 23:00 AI Evaluation in progress...' : 'Open 23:00 AI Daily Review'} <Sparkles size={16} />
+                {
+                  selectedDate === todayStr && new Date().getHours() < 23
+                    ? 'Preview / Generate 23:00 AI Review'
+                    : dailyLog.aiDailySummary
+                    ? 'View 23:00 AI Evaluation Report ✓'
+                    : isAutoGenerating23
+                    ? '⏳ Auto 23:00 AI Evaluation in progress...'
+                    : 'Open 23:00 AI Daily Review'
+                } <Sparkles size={16} />
               </button>
             </div>
 
