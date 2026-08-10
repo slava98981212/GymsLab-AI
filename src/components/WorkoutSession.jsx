@@ -1129,81 +1129,81 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
             </div>
           )}
 
-          {/* Stage Selector Pills (Warmup, Main, Cooldown) */}
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              onClick={() => setActiveStage('warmup')}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                borderRadius: '14px',
-                border: activeStage === 'warmup' ? '1px solid var(--accent-amber)' : '1px solid var(--border-card)',
-                background: activeStage === 'warmup' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(15, 23, 42, 0.6)',
-                color: activeStage === 'warmup' ? 'var(--accent-amber)' : 'var(--text-muted)',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem'
-              }}
-            >
-              <Flame size={16} /> Warmup {warmupCompleted && '✓'}
-            </button>
+          {/* Stage Selector Pills (ONLY SHOWN FOR WORKOUT #1 SPLIT) */}
+          {activeWorkoutType !== 'workout2' && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => setActiveStage('warmup')}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '14px',
+                  border: activeStage === 'warmup' ? '1px solid var(--accent-amber)' : '1px solid var(--border-card)',
+                  background: activeStage === 'warmup' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                  color: activeStage === 'warmup' ? 'var(--accent-amber)' : 'var(--text-muted)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <Flame size={16} /> Warmup {warmupCompleted && '✓'}
+              </button>
 
-            <button
-              onClick={() => setActiveStage('main')}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                borderRadius: '14px',
-                border: activeStage === 'main' ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
-                background: activeStage === 'main' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(15, 23, 42, 0.6)',
-                color: activeStage === 'main' ? 'var(--primary-cyan)' : 'var(--text-muted)',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem'
-              }}
-            >
-              <Dumbbell size={16} /> Main Workout
-            </button>
+              <button
+                onClick={() => setActiveStage('main')}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '14px',
+                  border: activeStage === 'main' ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
+                  background: activeStage === 'main' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                  color: activeStage === 'main' ? 'var(--primary-cyan)' : 'var(--text-muted)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <Dumbbell size={16} /> Main Workout
+              </button>
 
-            <button
-              onClick={() => setActiveStage('cooldown')}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                borderRadius: '14px',
-                border: activeStage === 'cooldown' ? '1px solid var(--accent-emerald)' : '1px solid var(--border-card)',
-                background: activeStage === 'cooldown' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(15, 23, 42, 0.6)',
-                color: activeStage === 'cooldown' ? 'var(--accent-emerald)' : 'var(--text-muted)',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem'
-              }}
-            >
-              <HeartPulse size={16} /> Stretch/Abs {cooldownCompleted && '✓'}
-            </button>
-          </div>
+              <button
+                onClick={() => setActiveStage('cooldown')}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '14px',
+                  border: activeStage === 'cooldown' ? '1px solid var(--accent-emerald)' : '1px solid var(--border-card)',
+                  background: activeStage === 'cooldown' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                  color: activeStage === 'cooldown' ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <HeartPulse size={16} /> Stretch/Abs {cooldownCompleted && '✓'}
+              </button>
+            </div>
+          )}
 
-          {/* STAGE 1: WARMUP */}
-          {activeStage === 'warmup' && (
+          {/* STAGE 1: WARMUP (ONLY FOR WORKOUT #1) */}
+          {activeWorkoutType !== 'workout2' && activeStage === 'warmup' && (
             <div className="glass-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
                   <span className="badge badge-amber"><Flame size={12} /> STAGE 1: WARMUP</span>
-                  <h3 style={{ fontSize: '1.15rem', marginTop: '0.25rem' }}>
-                    {activeWorkoutType === 'workout2' ? 'Calves & Abs Cardio Warmup' : currentDayProgram.warmupTitle}
-                  </h3>
+                  <h3 style={{ fontSize: '1.15rem', marginTop: '0.25rem' }}>{currentDayProgram.warmupTitle}</h3>
                 </div>
               </div>
 
@@ -1252,8 +1252,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
             </div>
           )}
 
-          {/* STAGE 2: MAIN EXERCISES & SUPERSETS */}
-          {activeStage === 'main' && (
+          {/* STAGE 2: MAIN EXERCISES & SUPERSETS (OR ENTIRE WORKOUT #2 ROUTINE) */}
+          {(activeWorkoutType === 'workout2' || activeStage === 'main') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* IF WORKOUT #1 IS ACTIVE: SHOW PRESETS PICKER & CALISTHENICS/SAUNA CARDS */}
               {activeWorkoutType === 'workout1' && (
@@ -1429,7 +1429,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                           </h3>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ex.note}</div>
                           {pastRecord && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--primary-cyan)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--primary-cyan)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem' }}>
                               <History size={13} /> Last time: <strong>{pastRecord}</strong>
                             </div>
                           )}
@@ -1482,14 +1482,24 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 })
               )}
 
-              <button onClick={() => setActiveStage('cooldown')} className="btn-emerald" style={{ width: '100%' }}>
-                Complete Main Workout & Start Stretch/Abs <HeartPulse size={16} />
+              <button
+                onClick={() => {
+                  if (activeWorkoutType === 'workout2') {
+                    handleFinishWorkout();
+                  } else {
+                    setActiveStage('cooldown');
+                  }
+                }}
+                className="btn-emerald"
+                style={{ width: '100%' }}
+              >
+                {activeWorkoutType === 'workout2' ? '🏁 FINISH WORKOUT #2 & SAVE' : 'Complete Main Workout & Start Stretch/Abs'} {activeWorkoutType === 'workout2' ? <Check size={16} /> : <HeartPulse size={16} />}
               </button>
             </div>
           )}
 
-          {/* STAGE 3: STRETCH & ABS COOLDOWN */}
-          {activeStage === 'cooldown' && (
+          {/* STAGE 3: STRETCH & ABS COOLDOWN (ONLY FOR WORKOUT #1) */}
+          {activeWorkoutType !== 'workout2' && activeStage === 'cooldown' && (
             <div className="glass-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
