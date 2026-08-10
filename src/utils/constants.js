@@ -32,9 +32,9 @@ export const MEASUREMENT_GUIDES = {
   }
 };
 
-// Mon/Wed/Fri Special Cardio & Calves/Tibialis Routine
-export const MON_WED_FRI_ROUTINE = {
-  title: 'Mon / Wed / Fri Cardio & Calves / Tibialis Routine',
+// Daily Calves & Abs Special Cardio & Calves/Tibialis Routine
+export const CALVES_ABS_ROUTINE = {
+  title: 'Calves & Abs Cardio Routine',
   items: [
     { id: 'mwf1', name: 'Rope Jumps (Switching Single Leg)', reps: '50 reps', category: 'Cardio' },
     { id: 'mwf2', name: 'Double Unders', reps: '50 reps', category: 'Cardio' },
@@ -52,12 +52,16 @@ export const MON_WED_FRI_ROUTINE = {
   ]
 };
 
+export const MON_WED_FRI_ROUTINE = CALVES_ABS_ROUTINE;
+
 // Complete Weekly Split Program
 export const WEEKLY_WORKOUT_SPLIT = {
   Saturday: {
     dayName: 'Leg Day (Saturday)',
     tag: 'Leg Focus',
-    warmupTitle: 'Leg Day Dynamic Warmup',
+    warmupTitle: 'Leg Day Dynamic Warmup + Calves/Abs Cardio',
+    includeMonWedFri: true,
+    includeCalvesAbs: true,
     warmup: [
       { id: 'leg_w1', name: 'Burpees (30s rest)', reps: '20 reps', rest: 30 },
       { id: 'leg_w2', name: 'Plank Up Down with Knee Drive (30s rest)', duration: '45 sec', rest: 30 },
@@ -98,7 +102,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Sunday: {
     dayName: 'Chest Day (Sunday)',
     tag: 'Chest & Back',
-    warmupTitle: 'Upper Body Dynamic Warmup',
+    warmupTitle: 'Upper Body Dynamic Warmup + Calves/Abs Cardio',
+    includeMonWedFri: true,
+    includeCalvesAbs: true,
     warmup: [
       { id: 'ch_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
       { id: 'ch_w2', name: '500m Rowing Machine', duration: '500m' },
@@ -136,8 +142,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Monday: {
     dayName: 'Arm Day (Monday)',
     tag: 'Arms & Shoulders',
-    warmupTitle: 'Upper Body Dynamic Warmup + Mon/Wed/Fri Cardio',
+    warmupTitle: 'Upper Body Dynamic Warmup + Calves/Abs Cardio',
     includeMonWedFri: true,
+    includeCalvesAbs: true,
     warmup: [
       { id: 'arm_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
       { id: 'arm_w2', name: '500m Rowing Machine (30s rest)', duration: '500m', rest: 30 },
@@ -175,7 +182,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
     dayName: 'Calisthenics Skill Focus (Tuesday)',
     tag: 'Calisthenics Focus',
     isCalisthenicsOnlyDay: true,
-    warmupTitle: 'Bodyweight Skill & Core Warmup',
+    warmupTitle: 'Bodyweight Skill & Core Warmup + Calves/Abs Cardio',
+    includeMonWedFri: true,
+    includeCalvesAbs: true,
     warmup: [
       { id: 'tue_w1', name: 'Jumping Jacks & Arm Circles', duration: '60 sec' },
       { id: 'tue_w2', name: 'Plank Up Down with Knee Drive', duration: '45 sec' },
@@ -191,8 +200,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Wednesday: {
     dayName: 'Leg Day #2 (Wednesday)',
     tag: 'Leg Focus #2',
-    warmupTitle: 'Leg Day Warmup + Mon/Wed/Fri Cardio',
+    warmupTitle: 'Leg Day Warmup + Calves/Abs Cardio',
     includeMonWedFri: true,
+    includeCalvesAbs: true,
     warmup: [
       { id: 'wed_w1', name: 'Burpees (30s rest)', reps: '20 reps', rest: 30 },
       { id: 'wed_w2', name: 'Plank Up Down with Knee Drive (30s rest)', duration: '45 sec', rest: 30 },
@@ -227,7 +237,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Thursday: {
     dayName: 'Arm Day #2 & Calisthenics (Thursday)',
     tag: 'Arms & Calisthenics',
-    warmupTitle: 'Calisthenics Skill & Upper Body Warmup',
+    warmupTitle: 'Calisthenics Skill & Upper Body Warmup + Calves/Abs Cardio',
+    includeMonWedFri: true,
+    includeCalvesAbs: true,
     warmup: [
       { id: 'thu_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
       { id: 'thu_w2', name: '500m Rowing Machine', duration: '500m' },
@@ -267,8 +279,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
     dayName: 'Calisthenics & Cardio Day (Friday)',
     tag: 'Calisthenics & Cardio',
     isCalisthenicsOnlyDay: true,
-    warmupTitle: 'Cardio Warmup + Mon/Wed/Fri Routine',
+    warmupTitle: 'Cardio Warmup + Calves/Abs Routine',
     includeMonWedFri: true,
+    includeCalvesAbs: true,
     warmup: [
       { id: 'fri_w1', name: 'Jumping Jacks & Arm Circles', duration: '60 sec' },
       { id: 'fri_w2', name: 'Plank Up Down with Knee Drive', duration: '45 sec' },
