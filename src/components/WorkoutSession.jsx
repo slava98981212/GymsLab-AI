@@ -269,6 +269,40 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     setEditingWorkoutObj(null);
   };
 
+  const handleSaveEditedWorkoutObj = () => {
+    if (!editingWorkoutObj) return;
+
+    let totalVolume = 0;
+    let totalSets = 0;
+    let totalReps = 0;
+
+    (editingWorkoutObj.exercises || []).forEach((ex) => {
+      (ex.sets || []).forEach((s) => {
+        if (s.completed || Number(s.weight) > 0) {
+          totalSets += 1;
+          totalReps += Number(s.reps) || 0;
+          totalVolume += (Number(s.weight) || 0) * (Number(s.reps) || 0);
+        }
+      });
+    });
+
+    const updatedWorkout = {
+      ...editingWorkoutObj,
+      totalVolume,
+      totalSets,
+      totalReps
+    };
+
+    const updatedSavedWorkouts = savedWorkouts.map((w, idx) =>
+      (w.workoutId && w.workoutId === updatedWorkout.workoutId) || idx === editingWorkoutObj._idx
+        ? updatedWorkout
+        : w
+    );
+
+    onUpdateLog({ savedWorkouts: updatedSavedWorkouts });
+    setEditingWorkoutObj(null);
+  };
+
   const startRestTimer = (secs) => {
     if (!secs || secs <= 0) return;
     triggerGlobalRestTimer(secs);
@@ -737,15 +771,31 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid var(--accent-emerald)', borderRadius: '12px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>
-                      🏋️ Workout #1 ({exercises.length} exercises recorded ✓)
+                      🏋️ Workout #1: {currentDayProgram.dayName} ({exercises.length} exercises recorded ✓)
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      Click "Finish Workout" to complete and save as standalone session object.
+                      Tap View / Edit / Rename to customize or edit set weights & reps.
                     </div>
                   </div>
-                  <button onClick={handleFinishWorkout} className="btn-emerald" style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}>
-                    Finish Workout <Check size={12} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setEditingWorkoutObj({
+                        workoutId: `workout_recorded_${Date.now()}`,
+                        workoutName: `Workout #1: ${currentDayProgram.dayName}`,
+                        dayName: currentDayProgram.dayName,
+                        date: dailyLog.date,
+                        exercises,
+                        durationSecs: workoutElapsedSecs
+                      })}
+                      className="btn-primary"
+                      style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
+                    >
+                      View / Edit / Rename <Edit2 size={12} />
+                    </button>
+                    <button onClick={handleFinishWorkout} className="btn-emerald" style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}>
+                      Finish & Save <Check size={12} />
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1554,33 +1604,48 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
       {editingWorkoutObj && (
         <div className="modal-overlay" onClick={() => setEditingWorkoutObj(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <span className="badge badge-cyan">{editingWorkoutObj.dayName} • {editingWorkoutObj.timestamp}</span>
-                <h2 style={{ fontSize: '1.3rem', margin: '0.2rem 0' }}>{editingWorkoutObj.workoutName || 'Workout Object Details'}</h2>
+                <span className="badge badge-cyan">{editingWorkoutObj.dayName || selectedDay} • {editingWorkoutObj.timestamp || 'Logged'}</span>
+                <h2 style={{ fontSize: '1.25rem', margin: '0.2rem 0' }}>Edit Workout Object</h2>
               </div>
               <button onClick={() => setEditingWorkoutObj(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                 <X size={22} />
               </button>
             </div>
 
-            {/* Metrics */}
+            {/* Editable Workout Title Field */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--primary-cyan)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
+                Workout Title (Rename Session):
+              </label>
+              <input
+                type="text"
+                value={editingWorkoutObj.workoutName || ''}
+                onChange={(e) => setEditingWorkoutObj((prev) => ({ ...prev, workoutName: e.target.value }))}
+                className="input-field"
+                placeholder="e.g. Sunday Chest & Arm Special"
+                style={{ fontWeight: 700, fontSize: '0.95rem' }}
+              />
+            </div>
+
+            {/* Metrics Breakdown */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem', marginBottom: '1.25rem' }}>
               <div style={{ background: 'rgba(2, 6, 23, 0.6)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-card)' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>⏱️ Duration</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-cyan)' }}>{formatHMS(editingWorkoutObj.durationSecs)}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--primary-cyan)' }}>{formatHMS(editingWorkoutObj.durationSecs || 0)}</div>
               </div>
               <div style={{ background: 'rgba(2, 6, 23, 0.6)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-card)' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>🏋️ Total Volume</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-emerald)' }}>{editingWorkoutObj.totalVolume} kg</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-emerald)' }}>{editingWorkoutObj.totalVolume || 0} kg</div>
               </div>
               <div style={{ background: 'rgba(2, 6, 23, 0.6)', padding: '0.75rem', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-card)' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>🔢 Sets / Reps</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-amber)' }}>{editingWorkoutObj.totalSets}s / {editingWorkoutObj.totalReps}r</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-amber)' }}>{editingWorkoutObj.totalSets || 0}s / {editingWorkoutObj.totalReps || 0}r</div>
               </div>
             </div>
 
-            {/* Exercises & Sets Review List */}
+            {/* Exercises & Editable Sets List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '350px', overflowY: 'auto', marginBottom: '1.25rem' }}>
               {editingWorkoutObj.exercises && editingWorkoutObj.exercises.length > 0 ? (
                 editingWorkoutObj.exercises.map((ex, exIdx) => (
@@ -1588,11 +1653,40 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                     <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                       • {ex.name}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       {ex.sets?.map((s, sIdx) => (
-                        <div key={sIdx} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '0.35rem 0.6rem', borderRadius: '8px' }}>
-                          <span>Set {s.setNum}: {s.weight} kg × {s.reps} reps</span>
-                          <span style={{ color: s.completed ? 'var(--accent-emerald)' : 'var(--text-dim)', fontWeight: 700 }}>{s.completed ? 'DONE ✓' : 'LOGGED'}</span>
+                        <div key={sIdx} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.02)', padding: '0.35rem 0.6rem', borderRadius: '8px' }}>
+                          <span style={{ fontWeight: 700, width: '45px' }}>Set {s.setNum}:</span>
+                          <input
+                            type="number"
+                            value={s.weight}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                              setEditingWorkoutObj((prev) => {
+                                const copy = JSON.parse(JSON.stringify(prev));
+                                copy.exercises[exIdx].sets[sIdx].weight = val;
+                                return copy;
+                              });
+                            }}
+                            className="input-field"
+                            style={{ width: '65px', padding: '0.2rem', textAlign: 'center' }}
+                          />
+                          <span style={{ fontSize: '0.7rem' }}>kg ×</span>
+                          <input
+                            type="number"
+                            value={s.reps}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                              setEditingWorkoutObj((prev) => {
+                                const copy = JSON.parse(JSON.stringify(prev));
+                                copy.exercises[exIdx].sets[sIdx].reps = val;
+                                return copy;
+                              });
+                            }}
+                            className="input-field"
+                            style={{ width: '60px', padding: '0.2rem', textAlign: 'center' }}
+                          />
+                          <span style={{ fontSize: '0.7rem' }}>reps</span>
                         </div>
                       ))}
                     </div>
@@ -1608,10 +1702,10 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 onClick={() => handleDeleteSavedWorkout(editingWorkoutObj.workoutId)}
                 style={{ flex: 1, background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--accent-rose)', color: 'var(--accent-rose)', padding: '0.75rem', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}
               >
-                Delete Session
+                Delete
               </button>
-              <button onClick={() => setEditingWorkoutObj(null)} className="btn-emerald" style={{ flex: 2 }}>
-                Done Reviewing <Check size={16} />
+              <button onClick={handleSaveEditedWorkoutObj} className="btn-emerald" style={{ flex: 2 }}>
+                Save Changes <Check size={16} />
               </button>
             </div>
           </div>
