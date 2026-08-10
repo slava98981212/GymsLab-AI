@@ -58,6 +58,18 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
 
   const mealPlanList = getMealPlanItems();
 
+  const calcMacros = (list) => {
+    return (list || []).reduce(
+      (acc, m) => ({
+        calories: acc.calories + (Number(m.calories) || 0),
+        protein: acc.protein + (Number(m.protein) || 0),
+        carbs: acc.carbs + (Number(m.carbs) || 0),
+        fat: acc.fat + (Number(m.fat) || 0)
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+  };
+
   const handleAddFromMealList = (presetMeal) => {
     const newMeal = {
       id: `meal_list_${Date.now()}`,
@@ -72,7 +84,8 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
     };
 
     const updatedMeals = [...meals, newMeal];
-    onUpdateLog({ meals: updatedMeals });
+    const newMacros = calcMacros(updatedMeals);
+    onUpdateLog({ meals: updatedMeals, totalMacros: newMacros });
     setShowMealListModal(false);
   };
 
@@ -141,7 +154,8 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
     };
 
     const updatedMeals = [...meals, newMeal];
-    onUpdateLog({ meals: updatedMeals, totalMacros });
+    const newMacros = calcMacros(updatedMeals);
+    onUpdateLog({ meals: updatedMeals, totalMacros: newMacros });
   };
 
   const handleAnalyzeTextMeal = async () => {
@@ -167,7 +181,8 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
       };
 
       const updatedMeals = [...meals, newMeal];
-      onUpdateLog({ meals: updatedMeals, totalMacros });
+      const newMacros = calcMacros(updatedMeals);
+      onUpdateLog({ meals: updatedMeals, totalMacros: newMacros });
       setShowTextModal(false);
       setTextInput('');
       alert(`AI Text Scan Complete! Added ${newMeal.name} (${newMeal.calories} kcal, ${newMeal.protein}g Protein).`);
@@ -215,8 +230,9 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
 
       const updatedMeals = [...meals, newMeal];
       const updatedPhotos = [...foodPhotos, { id: `photo_${Date.now()}`, url: photoSelected, category: selectedMealCategory }];
+      const newMacros = calcMacros(updatedMeals);
 
-      onUpdateLog({ meals: updatedMeals, foodPhotos: updatedPhotos, totalMacros });
+      onUpdateLog({ meals: updatedMeals, foodPhotos: updatedPhotos, totalMacros: newMacros });
       setShowPhotoModal(false);
       setPhotoSelected(null);
       setPhotoNotesInput('');
@@ -231,13 +247,15 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
   const handleSaveEditedMeal = () => {
     if (!editingMeal) return;
     const updatedMeals = meals.map((m) => (m.id === editingMeal.id ? editingMeal : m));
-    onUpdateLog({ meals: updatedMeals });
+    const newMacros = calcMacros(updatedMeals);
+    onUpdateLog({ meals: updatedMeals, totalMacros: newMacros });
     setEditingMeal(null);
   };
 
   const handleDeleteMeal = (id) => {
     const updatedMeals = meals.filter((m) => m.id !== id);
-    onUpdateLog({ meals: updatedMeals });
+    const newMacros = calcMacros(updatedMeals);
+    onUpdateLog({ meals: updatedMeals, totalMacros: newMacros });
   };
 
   const getPercent = (curr, target) => Math.min(100, Math.round((curr / (target || 1)) * 100));

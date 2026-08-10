@@ -55,9 +55,20 @@ export function sanitizeDailyLog(rawLog) {
 
   // Ensure weight, meals, foodPhotos, and videos are 100% preserved
   safeLog.weight = safeLog.weight ?? null;
-  safeLog.meals = Array.isArray(safeLog.meals) ? safeLog.meals : [];
-  safeLog.foodPhotos = Array.isArray(safeLog.foodPhotos) ? safeLog.foodPhotos : [];
-  safeLog.videos = Array.isArray(safeLog.videos) ? safeLog.videos : [];
+  safeLog.meals = Array.isArray(safeLog.meals) ? safeLog.meals.filter(Boolean) : [];
+  safeLog.foodPhotos = Array.isArray(safeLog.foodPhotos) ? safeLog.foodPhotos.filter(Boolean) : [];
+  safeLog.videos = Array.isArray(safeLog.videos) ? safeLog.videos.filter(Boolean) : [];
+
+  // Calculate totalMacros dynamically from safeLog.meals to ensure 100% precision
+  safeLog.totalMacros = safeLog.meals.reduce(
+    (acc, m) => ({
+      calories: acc.calories + (Number(m.calories) || 0),
+      protein: acc.protein + (Number(m.protein) || 0),
+      carbs: acc.carbs + (Number(m.carbs) || 0),
+      fat: acc.fat + (Number(m.fat) || 0)
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
 
   // Ensure exercises is a clean array
   if (!Array.isArray(safeLog.exercises)) {

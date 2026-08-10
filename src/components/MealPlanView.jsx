@@ -180,6 +180,30 @@ export default function MealPlanView({ profile, targetMacros, apiKey, dailyLog, 
                   <p style={{ margin: 0, color: 'var(--text-main)' }}>{m.instructions}</p>
                 </div>
               )}
+
+              <button
+                onClick={() => {
+                  const currentMeals = dailyLog?.meals || [];
+                  const newMeal = {
+                    id: `meal_plan_${Date.now()}_${idx}`,
+                    category: m.category || `Meal #${idx + 1}`,
+                    name: m.mealName,
+                    calories: Number(m.calories) || 0,
+                    protein: Number(m.protein) || 0,
+                    carbs: Number(m.carbs) || 0,
+                    fat: Number(m.fat) || 0,
+                    notes: (Array.isArray(m.ingredients) ? `Ingredients:\n• ${m.ingredients.join('\n• ')}\n\n` : '') + (m.instructions || ''),
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  };
+                  const updatedMeals = [...currentMeals, newMeal];
+                  onUpdateLog({ meals: updatedMeals });
+                  alert(`Logged "${m.mealName}" (${m.calories} kcal) to today's food tracker!`);
+                }}
+                className="btn-emerald"
+                style={{ width: '100%', padding: '0.65rem', fontSize: '0.82rem', marginTop: '0.4rem' }}
+              >
+                + Log Meal to Today's Food Tracker 🍽️
+              </button>
             </div>
           ))}
         </div>
