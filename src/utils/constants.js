@@ -97,20 +97,14 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Sunday: {
     dayName: 'Chest Day (Sunday)',
     tag: 'Chest & Back',
-    warmupTitle: 'Upper Body & Skill Warmup',
+    warmupTitle: 'Upper Body Dynamic Warmup',
     warmup: [
       { id: 'ch_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
       { id: 'ch_w2', name: '500m Rowing Machine', duration: '500m' },
       { id: 'ch_w3', name: 'Plank Up Down with Knee Drive', duration: '45 sec', rest: 30 },
       { id: 'ch_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
       { id: 'ch_w5', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
-      { id: 'ch_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
-      { id: 'ch_w7', name: 'Handstand Hold / Practice', duration: '2 min' },
-      { id: 'ch_w8', name: 'Gymnastic Ring Work', reps: '6 reps' },
-      { id: 'ch_w9', name: 'Front Lever Hold', duration: '1 min' },
-      { id: 'ch_w10', name: 'L-Sit Hold', duration: '1 min' },
-      { id: 'ch_w11', name: 'High Pulls', reps: '6 reps' },
-      { id: 'ch_w12', name: '1-Arm Push-ups', reps: '6 reps per side' }
+      { id: 'ch_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' }
     ],
     mainExercises: [
       { id: 'sun_m1', name: 'Weighted Dips', targetSets: 4, targetReps: 8, restSec: 120, note: 'Rest 2 min' },
@@ -141,7 +135,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
   Monday: {
     dayName: 'Arm Day (Monday)',
     tag: 'Arms & Shoulders',
-    warmupTitle: 'Upper Body Skill Warmup + Mon/Wed/Fri Cardio',
+    warmupTitle: 'Upper Body Dynamic Warmup + Mon/Wed/Fri Cardio',
     includeMonWedFri: true,
     warmup: [
       { id: 'arm_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
@@ -149,13 +143,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
       { id: 'arm_w3', name: 'Plank Up Down with Knee Drive', duration: '45 sec', rest: 30 },
       { id: 'arm_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
       { id: 'arm_w5', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
-      { id: 'arm_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
-      { id: 'arm_w7', name: 'Handstand Hold', duration: '2 min' },
-      { id: 'arm_w8', name: 'Gymnastic Ring Work', reps: '6 reps' },
-      { id: 'arm_w9', name: 'Front Lever Hold', duration: '1 min' },
-      { id: 'arm_w10', name: 'L-Sit Hold', duration: '1 min' },
-      { id: 'arm_w11', name: 'High Pulls', reps: '6 reps' },
-      { id: 'arm_w12', name: '1-Arm Push-ups', reps: '6 reps' }
+      { id: 'arm_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' }
     ],
     mainExercises: [
       { id: 'mon_m1', name: 'Dumbbell Shoulder Press', targetSets: 4, targetReps: 10, restSec: 180, note: 'Rest 3 min' },
@@ -234,9 +222,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
   },
 
   Thursday: {
-    dayName: 'Arm Day #2 (Thursday)',
-    tag: 'Arms & Shoulders #2',
-    warmupTitle: 'Upper Body Skill Warmup',
+    dayName: 'Arm Day #2 & Calisthenics (Thursday)',
+    tag: 'Arms & Calisthenics',
+    warmupTitle: 'Calisthenics Skill & Upper Body Warmup',
     warmup: [
       { id: 'thu_w1', name: 'Shoulder Pass Through', reps: '15 reps' },
       { id: 'thu_w2', name: '500m Rowing Machine', duration: '500m' },
@@ -244,8 +232,8 @@ export const WEEKLY_WORKOUT_SPLIT = {
       { id: 'thu_w4', name: 'Hollow Position (30s) + Superman (30s) [Set 1]', duration: '60 sec', rest: 30 },
       { id: 'thu_w5', name: 'Hollow Position (30s) + Superman (30s) [Set 2]', duration: '60 sec', rest: 30 },
       { id: 'thu_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' },
-      { id: 'thu_w7', name: 'Handstand Hold', duration: '2 min' },
-      { id: 'thu_w8', name: 'Gymnastic Ring Work', reps: '6 reps' },
+      { id: 'thu_w7', name: 'Handstand Hold / Practice', duration: '2 min' },
+      { id: 'thu_w8', name: 'Gymnastic Ring Work (2 sets for MAX REPS)', reps: 'MAX REPS', targetSets: 2, rest: 90, note: '2 sets for MAX REPS' },
       { id: 'thu_w9', name: 'Front Lever Hold', duration: '1 min' },
       { id: 'thu_w10', name: 'L-Sit Hold', duration: '1 min' },
       { id: 'thu_w11', name: 'High Pulls', reps: '6 reps' },
