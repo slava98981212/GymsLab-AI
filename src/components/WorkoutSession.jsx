@@ -314,10 +314,14 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     }
   };
 
-  const handleToggleMwfCheck = (id) => {
+  const handleToggleMwfCheck = (id, restSec) => {
     const next = { ...mwfChecks, [id]: !mwfChecks[id] };
     setMwfChecks(next);
     onUpdateLog({ mwfChecks: next });
+
+    if (!mwfChecks[id] && restSec) {
+      startRestTimer(restSec);
+    }
   };
 
   const handleToggleCooldownCheck = (id) => {
@@ -901,7 +905,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                       return (
                         <div
                           key={item.id}
-                          onClick={() => handleToggleMwfCheck(item.id)}
+                          onClick={() => handleToggleMwfCheck(item.id, item.restSec)}
                           style={{
                             background: isChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
                             border: isChecked ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
@@ -1000,7 +1004,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                       return (
                         <div
                           key={item.id}
-                          onClick={() => handleToggleMwfCheck(item.id)}
+                          onClick={() => handleToggleMwfCheck(item.id, item.restSec)}
                           style={{
                             background: isChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
                             border: isChecked ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',

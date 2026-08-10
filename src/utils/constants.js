@@ -38,14 +38,15 @@ export const MON_WED_FRI_ROUTINE = {
   items: [
     { id: 'mwf1', name: 'Rope Jumps (Switching Single Leg)', reps: '50 reps', category: 'Cardio' },
     { id: 'mwf2', name: 'Double Unders', reps: '50 reps', category: 'Cardio' },
-    { id: 'mwf3', name: 'Calf Machine (Weight Log)', sets: 3, reps: '12 - 15 reps', rest: '90s', category: 'Calves' },
+    { id: 'mwf3', name: 'Calf Machine (Weight Log)', sets: 3, reps: '12 - 15 reps', rest: '30s', restSec: 30, category: 'Calves' },
     {
       id: 'mwf4',
       name: 'SUPERSET: Tibialis Raises + Abs Crunches + Russian Swings',
       isSuperset: true,
       exercises: ['Tibialis Raises (15 reps)', 'Abs Crunches (20 reps)', 'Russian Swings (20 reps)'],
       sets: 3,
-      rest: '120s',
+      rest: '10s',
+      restSec: 10,
       category: 'Superset Core'
     }
   ]
