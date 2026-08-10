@@ -406,6 +406,8 @@ export default function App() {
         onToggleTravelMode={handleToggleTravelMode}
         onOpen1RMTest={() => setShow1RMModal(true)}
         is1RMDue={is1RMDue}
+        onOpenMorningWeight={() => setShowMorningWeightModal(true)}
+        currentWeight={dailyLog.weight}
       />
 
       {/* Main Container Content */}
@@ -434,9 +436,82 @@ export default function App() {
           </div>
         )}
 
+        {/* Water Deadline Alert Banner */}
+        {selectedDate === todayStr && !travelMode && (Number(dailyLog.waterLiters) || 0) < (new Date().getHours() >= 23 ? 3 : new Date().getHours() >= 16 ? 2 : new Date().getHours() >= 11 ? 1 : 0) && (
+          <div style={{
+            margin: '1rem 0 0',
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.9))',
+            border: '1px solid rgba(252, 165, 165, 0.5)',
+            borderRadius: '16px',
+            padding: '0.85rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            color: '#ffffff',
+            boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Droplets size={24} color="#38bdf8" className="spin" />
+              <div>
+                <strong style={{ fontSize: '0.9rem' }}>
+                  💧 Water Alert: Litre { (Number(dailyLog.waterLiters) || 0) + 1 } Log Missing!
+                </strong>
+                <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', opacity: 0.9 }}>
+                  Target: 1st before 11:00, 2nd before 16:00, 3rd before 23:00 ({dailyLog.waterLiters || 0} / 3.5L)
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleUpdateDailyLog({ waterLiters: Math.min(3.5, (Number(dailyLog.waterLiters) || 0) + 1) })}
+              style={{
+                background: '#ffffff',
+                border: 'none',
+                color: '#dc2626',
+                padding: '0.5rem 0.85rem',
+                borderRadius: '12px',
+                fontWeight: 900,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              +1 Liter Logged 💧
+            </button>
+          </div>
+        )}
+
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {activeTab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem 0' }}>
+            {/* Prominent Fast Weight Banner if not logged today */}
+            {!dailyLog.weight && selectedDate === todayStr && (
+              <div
+                onClick={() => setShowMorningWeightModal(true)}
+                className="glass-card"
+                style={{
+                  cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))',
+                  border: '1px solid var(--primary-cyan)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 0 18px var(--primary-cyan-glow)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Scale size={28} color="var(--primary-cyan)" />
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff' }}>
+                      ⚖️ Log Morning Fast Weight Today
+                    </h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
+                      Weigh yourself right after waking up for maximum tracking precision
+                    </p>
+                  </div>
+                </div>
+                <span className="badge badge-cyan">LOG WEIGHT ⚖️</span>
+              </div>
+            )}
             {/* Quick Hero Stat Banner */}
             <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>

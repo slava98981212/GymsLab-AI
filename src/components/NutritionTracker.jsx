@@ -27,6 +27,37 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
   // AI Meal Planner Modal State
   const [showPlannerModal, setShowPlannerModal] = useState(false);
 
+  // Quick Add from Meal List Modal State
+  const [showMealListModal, setShowMealListModal] = useState(false);
+
+  const PRESET_MEALS_VAULT = [
+    { name: 'Grilled Chicken & Sweet Potato', category: 'Lunch', calories: 520, protein: 48, carbs: 55, fat: 10, notes: '200g grilled chicken breast, 200g baked sweet potato, steamed broccoli.' },
+    { name: 'Salmon & Quinoa Bowl', category: 'Dinner', calories: 610, protein: 42, carbs: 48, fat: 22, notes: '200g Atlantic salmon fillet, 150g cooked quinoa, asparagus.' },
+    { name: 'Oatmeal & Whey Protein Shake', category: 'Breakfast', calories: 450, protein: 40, carbs: 52, fat: 8, notes: '80g oats cooked in almond milk, 1 scoop whey protein, 1 tbsp peanut butter.' },
+    { name: 'Steak & Eggs Breakfast', category: 'Breakfast', calories: 650, protein: 55, carbs: 5, fat: 42, notes: '200g sirloin steak, 3 whole eggs fried in butter.' },
+    { name: 'Post-Workout Whey & Banana', category: 'Post-Workout', calories: 280, protein: 30, carbs: 32, fat: 2, notes: '1 scoop whey protein isolate, 1 large ripe banana.' },
+    { name: 'Tuna & Avocado Salad', category: 'Lunch', calories: 420, protein: 38, carbs: 12, fat: 24, notes: '1 canned tuna in water, 1/2 avocado, mixed greens, olive oil dressing.' },
+    { name: 'Cottage Cheese & Berries', category: 'Snacks', calories: 250, protein: 28, carbs: 20, fat: 4, notes: '200g low-fat cottage cheese, 100g fresh blueberries.' }
+  ];
+
+  const handleAddFromMealList = (presetMeal) => {
+    const newMeal = {
+      id: `meal_list_${Date.now()}`,
+      category: presetMeal.category || selectedMealCategory,
+      name: presetMeal.name,
+      calories: presetMeal.calories,
+      protein: presetMeal.protein,
+      carbs: presetMeal.carbs,
+      fat: presetMeal.fat,
+      notes: presetMeal.notes || '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const updatedMeals = [...meals, newMeal];
+    onUpdateLog({ meals: updatedMeals });
+    setShowMealListModal(false);
+  };
+
   const meals = dailyLog?.meals || [];
   const foodPhotos = dailyLog?.foodPhotos || [];
 
@@ -252,11 +283,20 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         </button>
       </div>
 
-      {/* 3 Meal Logging Action Buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+      {/* 4 Meal Logging Action Buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.4rem' }}>
+        <button
+          onClick={() => setShowMealListModal(true)}
+          className="btn-primary"
+          style={{ padding: '0.75rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.2rem', background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' }}
+        >
+          <BookOpen size={18} />
+          <span>Meal List</span>
+        </button>
+
         <label
           className="btn-primary"
-          style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer', flexDirection: 'column', gap: '0.25rem' }}
+          style={{ padding: '0.75rem 0.25rem', fontSize: '0.75rem', cursor: 'pointer', flexDirection: 'column', gap: '0.2rem' }}
         >
           <Camera size={18} />
           <span>Photo Food</span>
@@ -266,7 +306,7 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         <button
           onClick={() => setShowTextModal(true)}
           className="btn-primary"
-          style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', flexDirection: 'column', gap: '0.25rem', background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' }}
+          style={{ padding: '0.75rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.2rem', background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' }}
         >
           <FileText size={18} />
           <span>Text AI</span>
@@ -275,7 +315,7 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
         <button
           onClick={handleAddManualMeal}
           className="btn-secondary"
-          style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', flexDirection: 'column', gap: '0.25rem' }}
+          style={{ padding: '0.75rem 0.25rem', fontSize: '0.75rem', flexDirection: 'column', gap: '0.2rem' }}
         >
           <Plus size={18} />
           <span>Manual</span>
@@ -470,12 +510,18 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
 
       {/* MOVED TO BOTTOM: Water (3.5L) & Steps (10,000) Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-        {/* Water 3.5L Card */}
+        {/* Water 3.5L Card with Deadline Milestones */}
         <div className="glass-card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--primary-cyan)', marginBottom: '0.35rem' }}>
-            <Droplets size={18} />
-            <h3 style={{ fontSize: '0.95rem', margin: 0 }}>Water (3.5 Liters)</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--primary-cyan)' }}>
+              <Droplets size={18} />
+              <h3 style={{ fontSize: '0.95rem', margin: 0 }}>Water (3.5 Liters)</h3>
+            </div>
+            <span style={{ fontSize: '0.7rem', color: waterLiters >= 3.5 ? 'var(--accent-emerald)' : 'var(--accent-amber)', fontWeight: 700 }}>
+              {waterLiters >= 3.5 ? 'GOAL MET ✓' : `${Math.max(0, (3.5 - waterLiters).toFixed(1))}L left`}
+            </span>
           </div>
+
           <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', margin: '0.2rem 0 0.5rem' }}>
             {waterLiters} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ 3.5 L</span>
           </div>
@@ -484,9 +530,25 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
             <div className="progress-fill" style={{ width: `${Math.min(100, (waterLiters / 3.5) * 100)}%`, background: 'var(--primary-cyan)' }} />
           </div>
 
+          {/* Litre Deadline Milestones */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.65rem', fontSize: '0.68rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: waterLiters >= 1 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.02)', padding: '0.25rem 0.4rem', borderRadius: '6px' }}>
+              <span>💧 Litre 1 (Deadline 11:00)</span>
+              <span style={{ fontWeight: 800, color: waterLiters >= 1 ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}>{waterLiters >= 1 ? 'DONE ✓' : 'LOG'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: waterLiters >= 2 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.02)', padding: '0.25rem 0.4rem', borderRadius: '6px' }}>
+              <span>💧 Litre 2 (Deadline 16:00)</span>
+              <span style={{ fontWeight: 800, color: waterLiters >= 2 ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}>{waterLiters >= 2 ? 'DONE ✓' : 'LOG'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: waterLiters >= 3 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.02)', padding: '0.25rem 0.4rem', borderRadius: '6px' }}>
+              <span>💧 Litre 3 (Deadline 23:00)</span>
+              <span style={{ fontWeight: 800, color: waterLiters >= 3 ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}>{waterLiters >= 3 ? 'DONE ✓' : 'LOG'}</span>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', gap: '0.35rem' }}>
             <button onClick={() => handleAddWater(0.5)} className="btn-secondary" style={{ flex: 1, padding: '0.35rem', fontSize: '0.7rem' }}>+0.5L</button>
-            <button onClick={() => handleAddWater(1.0)} className="btn-secondary" style={{ flex: 1, padding: '0.35rem', fontSize: '0.7rem' }}>+1.0L</button>
+            <button onClick={() => handleAddWater(1.0)} className="btn-emerald" style={{ flex: 1, padding: '0.35rem', fontSize: '0.7rem' }}>+1.0L</button>
           </div>
         </div>
 
@@ -745,6 +807,65 @@ export default function NutritionTracker({ profile, dailyLog, targetMacros, apiK
           }}
           onClose={() => setShowPlannerModal(false)}
         />
+      )}
+
+      {/* MODAL 6: Quick Add from Saved Meal List */}
+      {showMealListModal && (
+        <div className="modal-overlay" onClick={() => setShowMealListModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BookOpen size={20} color="var(--accent-emerald)" />
+                <h3 style={{ fontSize: '1.15rem', margin: 0 }}>Add from Saved Meal List</h3>
+              </div>
+              <button onClick={() => setShowMealListModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Tap any pre-configured high-protein athlete meal below to log it into today's food log:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '380px', overflowY: 'auto', marginBottom: '1.25rem' }}>
+              {PRESET_MEALS_VAULT.map((m, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleAddFromMealList(m)}
+                  style={{
+                    background: 'rgba(2, 6, 23, 0.6)',
+                    border: '1px solid var(--border-card)',
+                    borderRadius: '14px',
+                    padding: '0.85rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.65rem', marginBottom: '0.2rem' }}>{m.category}</span>
+                    <h4 style={{ fontSize: '0.95rem', margin: '0.2rem 0', color: 'var(--text-main)' }}>{m.name}</h4>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem' }}>
+                      <span>🔥 {m.calories} kcal</span>
+                      <span>💪 P: {m.protein}g</span>
+                      <span>🌾 C: {m.carbs}g</span>
+                      <span>🥑 F: {m.fat}g</span>
+                    </div>
+                  </div>
+
+                  <button className="btn-emerald" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                    + Log Meal <Plus size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={() => setShowMealListModal(false)} className="btn-secondary" style={{ width: '100%' }}>
+              Close Meal List
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

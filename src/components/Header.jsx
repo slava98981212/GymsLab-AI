@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dumbbell, Settings, Plane, Sparkles, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Dumbbell, Settings, Plane, Sparkles, ChevronLeft, ChevronRight, Calendar, Scale } from 'lucide-react';
 
 export default function Header({
   selectedDate,
@@ -8,7 +8,9 @@ export default function Header({
   travelMode,
   onToggleTravelMode,
   onOpen1RMTest,
-  is1RMDue
+  is1RMDue,
+  onOpenMorningWeight,
+  currentWeight
 }) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const isToday = selectedDate === todayStr;
@@ -75,7 +77,28 @@ export default function Header({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <button
+            onClick={onOpenMorningWeight}
+            title="Log Morning Fast Weight"
+            style={{
+              background: currentWeight ? 'rgba(6, 182, 212, 0.15)' : 'rgba(245, 158, 11, 0.2)',
+              border: currentWeight ? '1px solid var(--primary-cyan)' : '1px solid var(--accent-amber)',
+              color: currentWeight ? 'var(--primary-cyan)' : 'var(--accent-amber)',
+              borderRadius: '12px',
+              padding: '0.45rem 0.65rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              fontSize: '0.75rem',
+              fontWeight: 700
+            }}
+          >
+            <Scale size={14} />
+            <span>{currentWeight ? `${currentWeight} kg` : 'Log Weight'}</span>
+          </button>
+
           {is1RMDue && (
             <button
               onClick={onOpen1RMTest}
