@@ -215,7 +215,9 @@ export const WEEKLY_WORKOUT_SPLIT = {
         targetSets: 4,
         restSec: 120,
         note: 'Rest 2 min'
-      }
+      },
+      { id: 'wed_m5', name: 'Leg Extension', targetSets: 3, targetReps: 12, restSec: 90, note: 'Rest 90s' },
+      { id: 'wed_m6', name: 'Lying Leg Curl', targetSets: 3, targetReps: 12, restSec: 90, note: 'Rest 90s' }
     ],
     cooldown: [
       { id: 'wed_c1', name: '5 Min Deep Leg & Glute Stretch', duration: '5 min', type: 'stretch' }
@@ -253,9 +255,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
       { id: 'thu_m2', name: 'Cable Bicep Curl', targetSets: 3, targetReps: 12, restSec: 90, note: 'Rest 90s' },
       { id: 'thu_m3', name: 'Cable Hammer Curls', targetSets: 4, targetReps: 12, restSec: 90, note: 'Rest 90s' },
       { id: 'thu_m4', name: 'Reverse Pec Deck (Rear Delt Fly)', targetSets: 4, targetReps: 15, restSec: 90, note: 'Rest 90s' },
-      { id: 'thu_m5', name: 'Weighted Supinated Pull-ups', targetSets: 4, targetReps: 8, restSec: 180, note: 'Rest 3 min' },
-      { id: 'thu_m6', name: 'Leg Extension', targetSets: 3, targetReps: 12, restSec: 90, note: '3 sets x 12 reps' },
-      { id: 'thu_m7', name: 'Lying Leg Curl', targetSets: 3, targetReps: 12, restSec: 90, note: '3 sets x 12 reps' }
+      { id: 'thu_m5', name: 'Weighted Supinated Pull-ups', targetSets: 4, targetReps: 8, restSec: 180, note: 'Rest 3 min' }
     ],
     cooldown: [
       { id: 'thu_c1', name: 'Toes To Bar', reps: '20 reps', targetSets: 3, type: 'abs' },
