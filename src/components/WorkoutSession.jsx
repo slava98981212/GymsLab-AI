@@ -39,22 +39,27 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     }
   }, [dailyLog?.date]);
 
+  const getDateForDayName = (targetDayName) => {
+    const dayNamesList = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const targetIdx = dayNamesList.indexOf(targetDayName);
+    if (targetIdx < 0) return new Date().toISOString().slice(0, 10);
+
+    const now = new Date();
+    const currentIdx = now.getDay();
+    let diff = targetIdx - currentIdx;
+    if (diff > 0) {
+      diff -= 7;
+    }
+    const d = new Date(now);
+    d.setDate(now.getDate() + diff);
+    return d.toISOString().slice(0, 10);
+  };
+
   const handleSelectDayTab = (targetDayName) => {
     setSelectedDay(targetDayName);
-    if (dailyLog?.date && typeof onSelectDate === 'function') {
-      const [y, m, d] = dailyLog.date.split('-').map(Number);
-      const currentDateObj = new Date(y, m - 1, d);
-      const currentDayIdx = currentDateObj.getDay();
-      const targetDayIdx = dayNames.indexOf(targetDayName);
-      if (targetDayIdx >= 0) {
-        const diffDays = targetDayIdx - currentDayIdx;
-        const targetDateObj = new Date(currentDateObj);
-        targetDateObj.setDate(targetDateObj.getDate() + diffDays);
-        const targetDateStr = targetDateObj.toISOString().slice(0, 10);
-        if (targetDateStr !== dailyLog.date) {
-          onSelectDate(targetDateStr);
-        }
-      }
+    if (typeof onSelectDate === 'function') {
+      const targetDateStr = getDateForDayName(targetDayName);
+      onSelectDate(targetDateStr);
     }
   };
 
@@ -447,27 +452,36 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
           <Calendar size={14} color="var(--primary-cyan)" /> Select Workout Day:
         </div>
-        <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.2rem' }}>
+        <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.3rem', WebkitOverflowScrolling: 'touch' }}>
           {['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((d) => {
+            const dateForD = getDateForDayName(d);
             const isToday = d === todayDayName;
-            const isSelected = d === selectedDay;
+            const isSelected = dailyLog?.date === dateForD || d === selectedDay;
             return (
               <button
                 key={d}
                 onClick={() => handleSelectDayTab(d)}
                 style={{
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: '10px',
-                  border: isSelected ? '1px solid var(--primary-cyan)' : '1px solid var(--border-card)',
-                  background: isSelected ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                  color: isSelected ? 'var(--primary-cyan)' : 'var(--text-muted)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
+                  flex: '1 0 auto',
+                  minWidth: '64px',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '12px',
+                  border: isSelected ? '2px solid var(--primary-cyan)' : '1px solid var(--border-card)',
+                  background: isSelected ? 'rgba(6, 182, 212, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                  color: isSelected ? 'var(--primary-cyan)' : 'var(--text-main)',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
                   cursor: 'pointer',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  touchAction: 'manipulation',
+                  textAlign: 'center',
+                  boxShadow: isSelected ? '0 0 12px var(--primary-cyan-glow)' : 'none'
                 }}
               >
-                {d.slice(0, 3)} {isToday && '⭐'}
+                <div>{d.slice(0, 3)} {isToday && '⭐'}</div>
+                <div style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 500, marginTop: '0.1rem' }}>
+                  {dateForD.slice(5)}
+                </div>
               </button>
             );
           })}
@@ -576,7 +590,24 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 );
               })}
 
-              {savedWorkouts.length === 0 && !workoutActive && workoutElapsedSecs === 0 && (
+              {/* Unfinished or Logged Exercises Session Object */}
+              {savedWorkouts.length === 0 && !workoutActive && exercises.length > 0 && (
+                <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid var(--accent-emerald)', borderRadius: '12px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>
+                      🏋️ Workout #1 ({exercises.length} exercises recorded ✓)
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Click "Finish Workout" to complete and save as standalone session object.
+                    </div>
+                  </div>
+                  <button onClick={handleFinishWorkout} className="btn-emerald" style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}>
+                    Finish Workout <Check size={12} />
+                  </button>
+                </div>
+              )}
+
+              {savedWorkouts.length === 0 && !workoutActive && workoutElapsedSecs === 0 && exercises.length === 0 && (
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '0.4rem' }}>
                   No workout objects recorded yet today. Click <strong>Start Workout Session</strong> below!
                 </div>
