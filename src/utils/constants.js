@@ -155,7 +155,7 @@ export const WEEKLY_WORKOUT_SPLIT = {
     ],
     mainExercises: [
       { id: 'mon_m1', name: 'Dumbbell Shoulder Press', targetSets: 4, targetReps: 10, restSec: 180, note: 'Rest 3 min' },
-      { id: 'mon_m2', name: 'Standing Bicep Curls', targetSets: 4, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
+      { id: 'mon_m2', name: 'Seated Bicep Curls', targetSets: 4, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
       {
         id: 'mon_m3',
         name: 'SUPERSET: Lying Triceps Extension + Hammer Curls',
