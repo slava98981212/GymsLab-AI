@@ -855,7 +855,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           {/* Saved / Active Completed Workout Session Objects List for Today */}
           <div style={{ background: 'rgba(2, 6, 23, 0.7)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '0.85rem', marginBottom: '1.25rem' }}>
             <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>🏋️ TODAY'S RECORDED WORKOUT OBJECTS ({savedWorkouts.length + (workoutActive || workoutElapsedSecs > 0 ? 1 : 0)}):</span>
+              <span>🏋️ RECORDED WORKOUT OBJECTS FOR {selectedDay.toUpperCase()} ({savedWorkouts.length + (workoutActive || workoutElapsedSecs > 0 ? 1 : 0)}):</span>
               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Tap to View, Edit or Rename</span>
             </div>
 
@@ -952,7 +952,37 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
               {savedWorkouts.length === 0 && !workoutActive && workoutElapsedSecs === 0 && exercises.length === 0 && (
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '0.4rem' }}>
-                  No workout objects recorded yet today. Click <strong>Start Workout #1</strong> or <strong>Start Workout #2</strong> above!
+                  No workout objects recorded for {selectedDate}. Click <strong>Start Workout #1</strong> or <strong>Start Workout #2</strong> above!
+                </div>
+              )}
+
+              {/* Quick Jump to Yesterday's Workout if viewing today */}
+              {selectedDate === todayStr && (
+                <div
+                  onClick={() => {
+                    const prev = new Date();
+                    prev.setDate(prev.getDate() - 1);
+                    onSelectDate(prev.toISOString().slice(0, 10));
+                  }}
+                  style={{
+                    background: 'rgba(6, 182, 212, 0.1)',
+                    border: '1px dashed var(--primary-cyan)',
+                    borderRadius: '12px',
+                    padding: '0.55rem 0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    marginTop: '0.35rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <Calendar size={15} color="var(--primary-cyan)" />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary-cyan)' }}>
+                      📅 View Sunday 9 Aug Workout Session & Objects
+                    </span>
+                  </div>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>GOTO SUN 9 AUG →</span>
                 </div>
               )}
             </div>
