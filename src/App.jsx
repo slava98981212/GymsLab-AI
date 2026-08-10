@@ -15,6 +15,11 @@ import Statistics from './components/Statistics';
 import MealPlanView from './components/MealPlanView';
 
 import {
+  generateDaily23Summary,
+  generateWeeklySummary
+} from './services/openai';
+
+import {
   getProfile,
   saveProfile,
   getDailyLog,
@@ -89,6 +94,11 @@ export default function App() {
   const [apiKey, setApiKey] = useState(DEFAULT_OPENAI_KEY);
   const [travelMode, setTravelMode] = useState(false);
 
+  // Automatic 23:00 Background Evaluation States
+  const [isAutoGenerating23, setIsAutoGenerating23] = useState(false);
+  const [isAutoGeneratingWeekly, setIsAutoGeneratingWeekly] = useState(false);
+  const [autoWeeklySummaryResult, setAutoWeeklySummaryResult] = useState(null);
+
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showMorningWeightModal, setShowMorningWeightModal] = useState(false);
   const [showDailySummaryModal, setShowDailySummaryModal] = useState(false);
@@ -103,6 +113,140 @@ export default function App() {
   useEffect(() => {
     loadLogForDate(selectedDate);
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (!loadingDB && apiKey && dailyLog) {
+      triggerAuto23Evaluation();
+      triggerAutoSundayWeeklyEvaluation();
+    }
+  }, [loadingDB, apiKey, selectedDate, dailyLog?.date, dailyLog?.aiDailySummary]);
+
+  const triggerAuto23Evaluation = async () => {
+    if (!apiKey || isAutoGenerating23 || dailyLog?.aiDailySummary) return;
+
+    const now = new Date();
+    const isPastDate = selectedDate < todayStr;
+    const is2300OrLater = selectedDate === todayStr && now.getHours() >= 23;
+
+    if (!is2300OrLater && !isPastDate) return;
+
+    setIsAutoGenerating23(true);
+    try {
+      const allFrames = [];
+      if (dailyLog.videos && dailyLog.videos.length > 0) {
+        dailyLog.videos.forEach((vid) => {
+          if (vid.keyframes) allFrames.push(...vid.keyframes);
+        });
+      }
+
+      const weekendPhotos = [];
+      (allDailyLogsList || []).forEach((log) => {
+        if (log.foodPhotos) {
+          log.foodPhotos.forEach((p) => {
+            if (p?.url) weekendPhotos.push(p.url);
+          });
+        }
+      });
+      const recentWeekendPhotos = weekendPhotos.slice(-6);
+
+      const pastWorkoutLogs = [];
+      (allDailyLogsList || []).forEach((log) => {
+        if (log.date !== dailyLog.date) {
+          if (log.savedWorkouts && log.savedWorkouts.length > 0) {
+            log.savedWorkouts.forEach((sw) => {
+              pastWorkoutLogs.push({
+                date: log.date,
+                workoutName: sw.workoutName,
+                exercises: sw.exercises
+              });
+            });
+          } else if (log.exercises && log.exercises.length > 0) {
+            pastWorkoutLogs.push({
+              date: log.date,
+              exercises: log.exercises
+            });
+          }
+        }
+      });
+      const recentPastWorkouts = pastWorkoutLogs.slice(-10);
+
+      const summaryRes = await generateDaily23Summary(
+        dailyLog,
+        { profile, ...historicalMemory },
+        allFrames,
+        recentWeekendPhotos,
+        recentPastWorkouts,
+        apiKey
+      );
+
+      if (summaryRes) {
+        await handleUpdateDailyLog({ aiDailySummary: summaryRes });
+      }
+    } catch (err) {
+      console.error('Auto 23:00 Evaluation Error:', err);
+    } finally {
+      setIsAutoGenerating23(false);
+    }
+  };
+
+  const triggerAutoSundayWeeklyEvaluation = async () => {
+    if (!apiKey || isAutoGeneratingWeekly || autoWeeklySummaryResult) return;
+
+    const now = new Date();
+    const isSunday = now.getDay() === 0;
+    const is2300 = now.getHours() >= 23;
+
+    if (!isSunday || !is2300) return;
+
+    setIsAutoGeneratingWeekly(true);
+    try {
+      const allWeekDailySummaries = (allDailyLogsList || []).slice(-7).map((log) => ({
+        date: log.date,
+        grade: log.aiDailySummary?.grade || 'N/A',
+        headline: log.aiDailySummary?.headline || 'Daily log recorded',
+        workoutFeedback: log.aiDailySummary?.workoutFeedback || ''
+      }));
+
+      const oldestPhotos = profile?.photos || null;
+
+      const thirtyDaysAgoLog = (allDailyLogsList || []).find((log) => {
+        const diffDays = (now - new Date(log.date)) / (1000 * 3600 * 24);
+        return diffDays >= 25 && diffDays <= 40 && log.foodPhotos?.length > 0;
+      });
+      const lastMonthPhotos = thirtyDaysAgoLog ? { front: thirtyDaysAgoLog.foodPhotos[0]?.url } : null;
+
+      const currentWeeklyData = {
+        weekId: `Week_${todayStr}`,
+        weight: dailyLog.weight || profile?.weight || 80,
+        waist: profile?.waist || 85,
+        bicepLeft: profile?.bicepLeft || 38,
+        bicepRight: profile?.bicepRight || 38.5,
+        chest: profile?.chest || 104
+      };
+
+      const photoVault = {
+        oldestPhotos,
+        lastMonthPhotos,
+        newestPhotos: oldestPhotos
+      };
+
+      const res = await generateWeeklySummary(
+        currentWeeklyData,
+        { profile, ...historicalMemory },
+        allWeekDailySummaries,
+        photoVault,
+        apiKey
+      );
+
+      if (res) {
+        setAutoWeeklySummaryResult(res);
+      }
+    } catch (err) {
+      console.error('Auto Sunday Weekly Evaluation Error:', err);
+    } finally {
+      setIsAutoGeneratingWeekly(false);
+    }
+  };
 
   const loadInitialAppData = async () => {
     try {
@@ -346,31 +490,74 @@ export default function App() {
               </div>
             </div>
 
-            {/* Daily 23:00 AI Executive Summary Launcher */}
-            <div className="glass-card" style={{ border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+            {/* Daily 23:00 AI Executive Summary Launcher & Auto Notification Banner */}
+            <div
+              onClick={() => setShowDailySummaryModal(true)}
+              className="glass-card"
+              style={{
+                cursor: 'pointer',
+                border: dailyLog.aiDailySummary ? '1px solid var(--accent-emerald)' : '1px solid rgba(6, 182, 212, 0.4)',
+                background: dailyLog.aiDailySummary
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(6, 182, 212, 0.18))'
+                  : 'linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9))'
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <div>
-                  <span className="badge badge-cyan"><Sparkles size={12} /> DAILY 23:00 EVALUATION</span>
-                  <h3 style={{ fontSize: '1.1rem', marginTop: '0.25rem' }}>End-of-Day AI Summary</h3>
+                  <span className={`badge ${dailyLog.aiDailySummary ? 'badge-emerald' : 'badge-cyan'}`}>
+                    <Sparkles size={12} /> {dailyLog.aiDailySummary ? '23:00 EVALUATION READY ✓' : 'DAILY 23:00 EVALUATION'}
+                  </span>
+                  <h3 style={{ fontSize: '1.1rem', marginTop: '0.25rem' }}>
+                    {dailyLog.aiDailySummary ? `Your day grade (${dailyLog.aiDailySummary.grade}) and evaluation is ready` : 'End-of-Day AI Summary'}
+                  </h3>
                 </div>
                 {dailyLog.aiDailySummary?.grade && (
-                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-emerald)' }}>
-                    Grade {dailyLog.aiDailySummary.grade}
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent-emerald)', background: 'rgba(16, 185, 129, 0.15)', padding: '0.2rem 0.65rem', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                    {dailyLog.aiDailySummary.grade}
                   </div>
                 )}
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                Evaluates weight, macros, 3.5L water, 10k steps, supplements/vitamins, workout sets, sauna, and 20s form videos.
+                {dailyLog.aiDailySummary?.headline || 'Evaluates total workout time, exercises, weights, reps, sets, progressive overload, 3.5L water, 10k steps, sauna, and form videos.'}
               </p>
 
               <button
-                onClick={() => setShowDailySummaryModal(true)}
-                className="btn-primary"
+                onClick={(e) => { e.stopPropagation(); setShowDailySummaryModal(true); }}
+                className={dailyLog.aiDailySummary ? 'btn-emerald' : 'btn-primary'}
                 style={{ width: '100%' }}
               >
-                Open 23:00 AI Daily Review <Sparkles size={16} />
+                {dailyLog.aiDailySummary ? 'View 23:00 AI Evaluation Report ✓' : isAutoGenerating23 ? '⏳ Auto 23:00 AI Evaluation in progress...' : 'Open 23:00 AI Daily Review'} <Sparkles size={16} />
               </button>
             </div>
+
+            {/* Sunday 23:00 Weekly Transformation Notification Banner */}
+            {autoWeeklySummaryResult && (
+              <div
+                onClick={() => setActiveTab('weekly')}
+                className="glass-card"
+                style={{
+                  cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(16, 185, 129, 0.2))',
+                  border: '1px solid var(--accent-amber)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Award size={28} color="var(--accent-amber)" />
+                  <div>
+                    <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--accent-amber)' }}>
+                      🏆 Sunday 23:00 Weekly AI Assessment Ready ({autoWeeklySummaryResult.overallScore})
+                    </h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
+                      {autoWeeklySummaryResult.summaryHeadline}
+                    </p>
+                  </div>
+                </div>
+                <span className="badge badge-amber">OPEN SUNDAY AI</span>
+              </div>
+            )}
 
             {/* 15-Day 1RM Test Trigger Banner */}
             <div className="glass-card">

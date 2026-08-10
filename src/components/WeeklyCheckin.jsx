@@ -146,8 +146,14 @@ export default function WeeklyCheckin({ profile, historicalMemory, apiKey, onOpe
             </div>
 
             <div style={{ background: 'rgba(2, 6, 23, 0.5)', padding: '0.75rem', borderRadius: '12px' }}>
-              <strong>📸 Body Composition Photos:</strong> {aiWeeklyReport.physiquePhotoAnalysis}
+              <strong>📸 Body Composition Photos (Oldest vs Last Month vs New):</strong> {aiWeeklyReport.physiquePhotoAnalysis}
             </div>
+
+            {aiWeeklyReport.weeklySummariesReview && (
+              <div style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-amber)', padding: '0.75rem', borderRadius: '12px' }}>
+                📅 <strong>7-Day Daily AI Summaries Synthesis (Mon-Sun):</strong> {aiWeeklyReport.weeklySummariesReview}
+              </div>
+            )}
 
             <div style={{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--primary-cyan)', padding: '0.75rem', borderRadius: '12px' }}>
               🚀 <strong>Next Week Macro & Workout Plan:</strong> {aiWeeklyReport.nextWeekAdjustments}
