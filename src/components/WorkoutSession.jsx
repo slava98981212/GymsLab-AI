@@ -30,8 +30,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   const [selectedDay, setSelectedDay] = useState(() => getDayNameFromDateStr(dailyLog?.date));
   const [activeStage, setActiveStage] = useState('main');
 
-  // Active Workout Type: 'workout1' (Main Split) vs 'workout2' (Calves & Abs Routine)
-  const [activeWorkoutType, setActiveWorkoutType] = useState(() => dailyLog?.activeWorkoutType || 'workout1');
+  // Active Workout Type derived directly from dailyLog state ('workout1' vs 'workout2')
+  const activeWorkoutType = dailyLog?.activeWorkoutType || 'workout1';
   const [videoLoading, setVideoLoading] = useState(false);
 
   // Keep selectedDay in sync with dailyLog.date changes from Header Date Navigator
@@ -144,7 +144,6 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   }, [workoutActive, dailyLog?.workoutStartMs, workoutElapsedSecs, activeRunnerExercise]);
 
   const handleStartWorkout = () => {
-    setActiveWorkoutType('workout1');
     setWorkoutActive(true);
     const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
     const startMs = startGlobalWorkoutClock(null, existingSecs);
@@ -194,7 +193,6 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   };
 
   const handleStartMwfWorkoutSession = () => {
-    setActiveWorkoutType('workout2');
     const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
     const startMs = startGlobalWorkoutClock(null, existingSecs);
     setWorkoutElapsedSecs(existingSecs);
@@ -308,7 +306,6 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
       workoutSummary: newCompletedWorkout
     });
 
-    setActiveWorkoutType(null);
     setWorkoutElapsedSecs(0);
   };
 
@@ -1205,103 +1202,45 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 <div>
                   <span className="badge badge-amber"><Flame size={12} /> STAGE 1: WARMUP</span>
                   <h3 style={{ fontSize: '1.15rem', marginTop: '0.25rem' }}>
-                    {activeWorkoutType === 'workout2' ? 'Calves & Abs Warmup' : currentDayProgram.warmupTitle}
+                    {activeWorkoutType === 'workout2' ? 'Calves & Abs Cardio Warmup' : currentDayProgram.warmupTitle}
                   </h3>
                 </div>
               </div>
 
-              {/* ONLY SHOW WORKOUT #2 CARD IF ACTIVE WORKOUT TYPE IS WORKOUT #2 */}
-              {activeWorkoutType === 'workout2' ? (
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))',
-                  border: '1px solid var(--primary-cyan)',
-                  borderRadius: '16px',
-                  padding: '1rem',
-                  marginBottom: '1.25rem'
-                }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Zap size={16} /> {MON_WED_FRI_ROUTINE.title}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {MON_WED_FRI_ROUTINE.items.map((item) => {
-                      const isChecked = mwfChecks[item.id] || false;
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => handleToggleMwfCheck(item.id, item.restSec)}
-                          style={{
-                            background: isChecked ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 6, 23, 0.6)',
-                            border: isChecked ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)',
-                            borderRadius: '12px',
-                            padding: '0.75rem 0.85rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                            {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
-                            <div>
-                              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
-                                {item.name}
-                              </div>
-                              {item.isSuperset ? (
-                                <div style={{ fontSize: '0.72rem', color: 'var(--accent-amber)', marginTop: '0.15rem' }}>
-                                  {item.exercises.join(' + ')} ({item.sets} sets)
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                                  Target: {item.reps} {item.sets ? `(${item.sets} sets)` : ''} {item.rest ? `• Rest ${item.rest}` : ''}
-                                </div>
-                              )}
-                            </div>
+              {/* Standard Warmup Checklist */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {(currentDayProgram?.warmup || []).map((item) => {
+                  const isChecked = warmupChecks[item.id] || false;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleToggleWarmupCheck(item.id, item.rest)}
+                      style={{
+                        background: isChecked ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 6, 23, 0.5)',
+                        border: isChecked ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-card)',
+                        borderRadius: '14px',
+                        padding: '0.85rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
+                        <div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
+                            {item.name}
                           </div>
-                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
-                            {item.category}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                /* WORKOUT #1 WARMUP ITEMS ONLY */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {(currentDayProgram?.warmup || []).map((item) => {
-                    const isChecked = warmupChecks[item.id] || false;
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => handleToggleWarmupCheck(item.id, item.rest)}
-                        style={{
-                          background: isChecked ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 6, 23, 0.5)',
-                          border: isChecked ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-card)',
-                          borderRadius: '14px',
-                          padding: '0.85rem 1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          {isChecked ? <CheckSquare color="var(--accent-emerald)" size={20} /> : <Square color="var(--text-dim)" size={20} />}
-                          <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isChecked ? 'var(--accent-emerald)' : 'var(--text-main)' }}>
-                              {item.name}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              Target: {item.reps || item.duration} {item.rest ? `(${item.rest}s rest)` : ''}
-                            </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Target: {item.reps || item.duration} {item.rest ? `(${item.rest}s rest)` : ''}
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    </div>
+                  );
+                })}
+              </div>
 
               <button
                 onClick={() => setActiveStage('main')}
