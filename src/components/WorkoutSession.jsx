@@ -146,6 +146,56 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     onUpdateLog({ workoutActive: true, workoutDurationSecs: existingSecs, workoutStartMs: startMs });
   };
 
+  const handleStartMwfWorkoutSession = () => {
+    const existingSecs = workoutElapsedSecs > 0 ? workoutElapsedSecs : 0;
+    const startMs = startGlobalWorkoutClock(null, existingSecs);
+    setWorkoutElapsedSecs(existingSecs);
+    setWorkoutActive(true);
+
+    const mwfExercises = MON_WED_FRI_ROUTINE.items.map((item) => {
+      const pastSets = getPreviousSetsForExercise(item.id, item.name);
+      let initialSets = [];
+      if (pastSets && pastSets.length > 0) {
+        initialSets = pastSets.map((ps, idx) => ({
+          setNum: idx + 1,
+          weight: ps.weight ?? (item.id === 'calf_machine' ? 50 : 0),
+          reps: ps.reps ?? (item.id === 'rope_jumps' ? 100 : item.id === 'double_unders' ? 50 : 12),
+          completed: false
+        }));
+      } else {
+        const setCnt = item.sets || 3;
+        for (let i = 1; i <= setCnt; i++) {
+          initialSets.push({
+            setNum: i,
+            weight: item.id === 'calf_machine' ? 50 : 0,
+            reps: item.id === 'rope_jumps' ? 100 : item.id === 'double_unders' ? 50 : 12,
+            completed: false
+          });
+        }
+      }
+
+      return {
+        exerciseId: item.id,
+        name: item.name,
+        isSuperset: item.isSuperset || false,
+        subExercises: item.exercises || [],
+        restSec: item.restSec || 30,
+        note: item.reps || '',
+        startedAt: Date.now(),
+        sets: initialSets
+      };
+    });
+
+    onUpdateLog({
+      workoutActive: true,
+      workoutDurationSecs: existingSecs,
+      workoutStartMs: startMs,
+      exercises: mwfExercises
+    });
+
+    setActiveStage('main');
+  };
+
   const handlePauseWorkout = () => {
     setWorkoutActive(false);
     stopGlobalWorkoutClock();
@@ -560,18 +610,32 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           {/* Mon/Wed/Fri Routine Special Card Preview */}
           {currentDayProgram.includeMonWedFri && (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))',
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(59, 130, 246, 0.18))',
               border: '1px solid var(--primary-cyan)',
-              borderRadius: '14px',
-              padding: '0.85rem',
+              borderRadius: '16px',
+              padding: '1rem',
               marginBottom: '1.25rem'
             }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Zap size={15} /> 🔥 INCLUDED TODAY: {MON_WED_FRI_ROUTINE.title}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <div>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.65rem', marginBottom: '0.2rem' }}>WORKOUT #2 OF 2 TODAY</span>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Zap size={16} /> {MON_WED_FRI_ROUTINE.title}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStartMwfWorkoutSession}
+                  className="btn-emerald"
+                  style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem', whiteSpace: 'nowrap', boxShadow: '0 4px 14px var(--accent-emerald-glow)' }}
+                >
+                  🚀 Start Workout #2 <Play size={13} />
+                </button>
               </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 {MON_WED_FRI_ROUTINE.items.map((item) => (
-                  <div key={item.id} style={{ fontSize: '0.78rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '0.35rem 0.6rem', borderRadius: '8px' }}>
+                  <div key={item.id} style={{ fontSize: '0.78rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', padding: '0.4rem 0.65rem', borderRadius: '8px' }}>
                     <span>• {item.name}</span>
                     <span style={{ color: 'var(--primary-cyan)', fontWeight: 700 }}>{item.reps || item.sets + ' sets'}</span>
                   </div>
@@ -693,14 +757,34 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
             </div>
           </div>
 
-          {/* LARGE PROMINENT START WORKOUT BUTTON */}
-          <button
-            onClick={handleStartWorkout}
-            className="btn-emerald"
-            style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', boxShadow: '0 6px 20px var(--accent-emerald-glow)' }}
-          >
-            🚀 START {savedWorkouts.length > 0 ? `WORKOUT #${savedWorkouts.length + 1}` : 'WORKOUT SESSION'} <ArrowRight size={20} />
-          </button>
+          {/* LARGE PROMINENT START WORKOUT BUTTONS (2 WORKOUTS ON MON/WED/FRI) */}
+          {currentDayProgram.includeMonWedFri ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <button
+                onClick={handleStartWorkout}
+                className="btn-emerald"
+                style={{ width: '100%', padding: '0.95rem 1rem', fontSize: '1rem', boxShadow: '0 6px 20px var(--accent-emerald-glow)' }}
+              >
+                🏋️ START WORKOUT #1: {currentDayProgram.dayName} <ArrowRight size={18} />
+              </button>
+
+              <button
+                onClick={handleStartMwfWorkoutSession}
+                className="btn-primary"
+                style={{ width: '100%', padding: '0.95rem 1rem', fontSize: '1rem', background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)', boxShadow: '0 6px 20px var(--primary-cyan-glow)' }}
+              >
+                ⚡ START WORKOUT #2: Calves & Abs Routine <Zap size={18} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleStartWorkout}
+              className="btn-emerald"
+              style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', boxShadow: '0 6px 20px var(--accent-emerald-glow)' }}
+            >
+              🚀 START {savedWorkouts.length > 0 ? `WORKOUT #${savedWorkouts.length + 1}` : 'WORKOUT SESSION'} <ArrowRight size={20} />
+            </button>
+          )}
         </div>
       ) : (
         /* WORKOUT STATE SCREEN 2: ACTIVE WORKOUT MODE (ONLY SHOWN AFTER CLICKING START WORKOUT) */
