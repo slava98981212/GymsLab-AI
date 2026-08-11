@@ -491,6 +491,54 @@ export default function App() {
           </div>
         )}
 
+        {/* Yesterday Quick Jump Banner if viewing Today & Yesterday has logged data */}
+        {(() => {
+          const yesterdayDateStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+          const yesterdayLogObj = (allDailyLogsList || []).find((l) => l.date === yesterdayDateStr);
+          const hasYesterdayData = yesterdayLogObj && (
+            (yesterdayLogObj.meals && yesterdayLogObj.meals.length > 0) ||
+            (yesterdayLogObj.savedWorkouts && yesterdayLogObj.savedWorkouts.length > 0) ||
+            (yesterdayLogObj.exercises && yesterdayLogObj.exercises.length > 0) ||
+            yesterdayLogObj.weight !== null
+          );
+
+          if (selectedDate === todayStr && hasYesterdayData) {
+            const mealCount = yesterdayLogObj.meals?.length || 0;
+            const workoutCount = (yesterdayLogObj.savedWorkouts?.length || (yesterdayLogObj.exercises?.length > 0 ? 1 : 0));
+
+            return (
+              <div
+                onClick={() => setSelectedDate(yesterdayDateStr)}
+                className="glass-card"
+                style={{
+                  margin: '1rem 0 0',
+                  cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(16, 185, 129, 0.15))',
+                  border: '1px solid var(--accent-amber)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 0 15px rgba(245, 158, 11, 0.2)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Calendar size={26} color="var(--accent-amber)" />
+                  <div>
+                    <h3 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--accent-amber)' }}>
+                      📅 View Yesterday's Logged Data ({yesterdayDateStr})
+                    </h3>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
+                      {mealCount} meals logged • {workoutCount} workout sessions saved • Tap to inspect or edit
+                    </p>
+                  </div>
+                </div>
+                <span className="badge badge-amber" style={{ whiteSpace: 'nowrap' }}>VIEW YESTERDAY 🔍</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {activeTab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem 0' }}>

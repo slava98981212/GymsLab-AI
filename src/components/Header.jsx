@@ -152,17 +152,18 @@ export default function Header({
       </div>
 
       {/* Date Navigator Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'rgba(2, 6, 23, 0.5)', padding: '0.35rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(2, 6, 23, 0.6)', padding: '0.35rem 0.75rem', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
         <button
           onClick={handlePrevDay}
+          title="Previous Day"
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.2rem 0.4rem', display: 'flex', alignItems: 'center' }}
         >
           <ChevronLeft size={18} />
         </button>
 
-        <label style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 700, color: isToday ? 'var(--primary-cyan)' : 'var(--accent-amber)' }}>
+        <label style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem', fontWeight: 700, color: isToday ? 'var(--primary-cyan)' : 'var(--accent-amber)' }}>
           <Calendar size={14} />
-          <span>{isToday ? `Today (${formattedDate})` : formattedDate}</span>
+          <span>{isToday ? `Today (${formattedDate})` : `Viewing: ${formattedDate}`}</span>
           <input
             type="date"
             value={selectedDate}
@@ -171,9 +172,20 @@ export default function Header({
           />
         </label>
 
+        {!isToday && (
+          <button
+            onClick={() => onSelectDate(todayStr)}
+            className="badge badge-cyan"
+            style={{ padding: '0.25rem 0.55rem', cursor: 'pointer', border: 'none', fontSize: '0.7rem' }}
+          >
+            Today 🚀
+          </button>
+        )}
+
         <button
           onClick={handleNextDay}
           disabled={isToday}
+          title="Next Day"
           style={{ background: 'none', border: 'none', color: isToday ? 'var(--text-dim)' : 'var(--text-muted)', cursor: isToday ? 'default' : 'pointer', padding: '0.2rem 0.4rem', display: 'flex', alignItems: 'center' }}
         >
           <ChevronRight size={18} />
