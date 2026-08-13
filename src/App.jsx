@@ -122,7 +122,7 @@ export default function App() {
   }, [loadingDB, apiKey, selectedDate, dailyLog?.date, dailyLog?.aiDailySummary]);
 
   const triggerAuto23Evaluation = async () => {
-    if (!apiKey || isAutoGenerating23 || dailyLog?.aiDailySummary) return;
+    if (!apiKey || isAutoGenerating23) return;
 
     const now = new Date();
     const isPastDate = selectedDate < todayStr;
@@ -130,11 +130,23 @@ export default function App() {
 
     if (!is2300OrLater && !isPastDate) return;
 
+    // Fetch the FRESH target log directly from IndexedDB to avoid stale React closures
+    const targetLog = await getDailyLog(selectedDate);
+    if (!targetLog) return;
+    if (targetLog.aiDailySummary) return; // Already evaluated, preserve existing evaluation!
+
+    const hasLoggedData = (targetLog.meals && targetLog.meals.length > 0) ||
+                          (targetLog.savedWorkouts && targetLog.savedWorkouts.length > 0) ||
+                          (targetLog.exercises && targetLog.exercises.length > 0) ||
+                          targetLog.weight !== null;
+
+    if (!hasLoggedData && !isPastDate) return;
+
     setIsAutoGenerating23(true);
     try {
       const allFrames = [];
-      if (dailyLog.videos && dailyLog.videos.length > 0) {
-        dailyLog.videos.forEach((vid) => {
+      if (targetLog.videos && targetLog.videos.length > 0) {
+        targetLog.videos.forEach((vid) => {
           if (vid.keyframes) allFrames.push(...vid.keyframes);
         });
       }
@@ -151,7 +163,7 @@ export default function App() {
 
       const pastWorkoutLogs = [];
       (allDailyLogsList || []).forEach((log) => {
-        if (log.date !== dailyLog.date) {
+        if (log.date !== targetLog.date) {
           if (log.savedWorkouts && log.savedWorkouts.length > 0) {
             log.savedWorkouts.forEach((sw) => {
               pastWorkoutLogs.push({
@@ -171,7 +183,7 @@ export default function App() {
       const recentPastWorkouts = pastWorkoutLogs.slice(-10);
 
       const summaryRes = await generateDaily23Summary(
-        dailyLog,
+        targetLog,
         { profile, ...historicalMemory },
         allFrames,
         recentWeekendPhotos,
@@ -348,9 +360,9 @@ export default function App() {
   };
 
   const handleUpdateDailyLog = async (fieldsToUpdate) => {
-    const updated = { ...dailyLog, ...fieldsToUpdate, travelMode, date: selectedDate };
-    setDailyLog(updated);
-    const saved = await saveDailyLog(selectedDate, updated);
+    // Save fields directly to IndexedDB via smart non-destructive merge
+    const saved = await saveDailyLog(selectedDate, { ...fieldsToUpdate, travelMode });
+    setDailyLog(saved);
 
     // Keep allDailyLogsList updated in memory for real-time historical queries
     setAllDailyLogsList((prev) => {

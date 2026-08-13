@@ -106,7 +106,35 @@ export function sanitizeDailyLog(rawLog) {
 export async function saveDailyLog(dateStr, logData) {
   const db = await initDB();
   const existing = (await db.get('dailyLogs', dateStr)) || { date: dateStr };
-  const updated = sanitizeDailyLog({ ...existing, ...logData, date: dateStr, updatedAt: new Date().toISOString() });
+
+  // Smart non-destructive merge: Protect existing recorded items if logData passes empty/null arrays from a partial update
+  const merged = { ...existing, ...logData, date: dateStr, updatedAt: new Date().toISOString() };
+
+  if (Array.isArray(existing.meals) && existing.meals.length > 0 && Array.isArray(logData.meals) && logData.meals.length === 0 && !logData._allowEmptyMeals) {
+    merged.meals = existing.meals;
+  }
+
+  if (Array.isArray(existing.savedWorkouts) && existing.savedWorkouts.length > 0 && Array.isArray(logData.savedWorkouts) && logData.savedWorkouts.length === 0 && !logData._allowEmptySavedWorkouts) {
+    merged.savedWorkouts = existing.savedWorkouts;
+  }
+
+  if (Array.isArray(existing.exercises) && existing.exercises.length > 0 && Array.isArray(logData.exercises) && logData.exercises.length === 0 && !logData._allowEmptyExercises) {
+    merged.exercises = existing.exercises;
+  }
+
+  if (Array.isArray(existing.foodPhotos) && existing.foodPhotos.length > 0 && Array.isArray(logData.foodPhotos) && logData.foodPhotos.length === 0 && !logData._allowEmptyPhotos) {
+    merged.foodPhotos = existing.foodPhotos;
+  }
+
+  if (Array.isArray(existing.videos) && existing.videos.length > 0 && Array.isArray(logData.videos) && logData.videos.length === 0 && !logData._allowEmptyVideos) {
+    merged.videos = existing.videos;
+  }
+
+  if (existing.weight != null && logData.weight == null) {
+    merged.weight = existing.weight;
+  }
+
+  const updated = sanitizeDailyLog(merged);
   await db.put('dailyLogs', updated);
   return updated;
 }
