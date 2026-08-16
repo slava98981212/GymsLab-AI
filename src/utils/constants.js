@@ -125,7 +125,15 @@ export const WEEKLY_WORKOUT_SPLIT = {
         note: 'Rest 3 min'
       },
       { id: 'sun_m3', name: 'Lat Pulldown', targetSets: 4, targetReps: 10, restSec: 120, note: 'Rest 2 min' },
-      { id: 'sun_m4', name: 'Incline Dumbbell Bench Press', targetSets: 3, targetReps: 10, restSec: 180, note: 'Rest 3 min' },
+      {
+        id: 'sun_m4',
+        name: 'SUPERSET: Incline Dumbbell Press + Dumbbell Butterfly (Flyes)',
+        isSuperset: true,
+        subExercises: ['Incline Dumbbell Press (10 reps)', 'Dumbbell Butterfly (Flyes) (12 reps)'],
+        targetSets: 3,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
       { id: 'sun_m5', name: 'Seated Cable Row', targetSets: 3, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
       { id: 'sun_m6', name: 'Weighted Pull-ups', targetSets: 3, targetReps: 6, restSec: 180, note: 'Rest 3 min' }
     ],
@@ -154,7 +162,15 @@ export const WEEKLY_WORKOUT_SPLIT = {
       { id: 'arm_w6', name: 'Deep Squat to Hamstring Stretch', reps: '10 reps' }
     ],
     mainExercises: [
-      { id: 'mon_m1', name: 'Dumbbell Shoulder Press', targetSets: 4, targetReps: 10, restSec: 180, note: 'Rest 3 min' },
+      {
+        id: 'mon_m1',
+        name: 'SUPERSET: Dumbbell Shoulder Press + Dumbbell Butterfly (Flyes)',
+        isSuperset: true,
+        subExercises: ['Dumbbell Shoulder Press (10 reps)', 'Dumbbell Butterfly (Flyes) (12 reps)'],
+        targetSets: 4,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
       { id: 'mon_m2', name: 'Seated Bicep Curls', targetSets: 4, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
       {
         id: 'mon_m3',
@@ -315,5 +331,7 @@ export const PRESET_EXERCISES = [
   { id: 'e11', name: 'Lateral Dumbbell Raise', muscle: 'Shoulders' },
   { id: 'e12', name: 'Leg Press', muscle: 'Legs' },
   { id: 'e13', name: 'Leg Extension', muscle: 'Quads' },
-  { id: 'e14', name: 'Lying Leg Curl', muscle: 'Hamstrings' }
+  { id: 'e14', name: 'Lying Leg Curl', muscle: 'Hamstrings' },
+  { id: 'e15', name: 'SUPERSET: Dumbbell Press + Dumbbell Butterfly', muscle: 'Chest & Shoulders' },
+  { id: 'e16', name: 'Dumbbell Butterfly (Flyes)', muscle: 'Chest' }
 ];
