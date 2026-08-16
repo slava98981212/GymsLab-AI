@@ -50,18 +50,21 @@ async function callOpenAI({ apiKey, messages, responseFormat = null, model = 'gp
  * Baseline AI Onboarding Analysis
  */
 export async function generateBaselineSummary(profile, apiKey) {
+  const targetMacros = profile.targetMacros || { calories: 2500, protein: 180, carbs: 280, fat: 70 };
   const contentArray = [
     {
       type: 'text',
       text: `You are GymsLab AI, an elite high-performance fitness coach.
 Analyze the user's initial onboarding baseline statistics and body progress photos:
-- Height: ${profile.height} cm
-- Starting Weight: ${profile.weight} kg
-- Waist Size: ${profile.waist} cm
-- Bicep Size: ${profile.bicepLeft} cm (L) / ${profile.bicepRight} cm (R)
+- Height: ${profile.height || 180} cm
+- Starting Weight: ${profile.weight || 80} kg
+- Waist Size: ${profile.waist || 85} cm
+- Bicep Size: ${profile.bicepLeft || 38} cm (L) / ${profile.bicepRight || 38.5} cm (R)
 - Chest Size: ${profile.chest || 'N/A'} cm
 - Thigh Size: ${profile.thigh || 'N/A'} cm
-- Target Weight Goal: ${profile.targetWeight} kg (${profile.goalType || 'Recomposition'})
+- Primary Fitness Goal: ${profile.goalType || 'Recomposition'}
+- Target Weight Goal: ${profile.targetWeight || 78} kg
+- User Target Daily Macros: ${targetMacros.calories} kcal (${targetMacros.protein}g Protein, ${targetMacros.carbs}g Carbs, ${targetMacros.fat}g Fat)
 
 Provide a professional, motivating initial assessment in JSON format with:
 1. "analysis": A 3-4 paragraph baseline assessment of their current physique, waist-to-height ratio, and potential.
@@ -145,21 +148,24 @@ Return JSON:
  * AI Custom Daily Meal Plan & Cooking Recipe Generator
  */
 export async function generateMealPlan({ mealsPerDay, cravings, targetMacros, profile, chatHistory }, apiKey) {
+  const userProfile = profile || {};
+  const effectiveMacros = targetMacros || userProfile.targetMacros || { calories: 2500, protein: 180, carbs: 280, fat: 70 };
+
   const systemPrompt = `You are a Master Sports Nutritionist & Elite Chef AI designing a custom daily meal plan for an athlete.
 
-ATHLETE CONTEXT & STATS:
-- Goal: ${profile?.goalType || 'Body Recomposition'}
-- Current Weight: ${profile?.weight || 80} kg | Target Weight: ${profile?.targetWeight || 78} kg
-- Height: ${profile?.height || 180} cm | Waist: ${profile?.waist || 85} cm
+ATHLETE CONTEXT & EXACT TARGET GOALS:
+- Primary Fitness Goal: ${userProfile.goalType || 'Body Recomposition'}
+- Current Weight: ${userProfile.weight || 80} kg | Target Weight Goal: ${userProfile.targetWeight || 78} kg
+- Height: ${userProfile.height || 180} cm | Waist: ${userProfile.waist || 85} cm
 - Exercise Frequency: 5-6 Days per Week (Intense Resistance Training & Calisthenics)
-- Daily Macro Goals: ${targetMacros.calories} kcal (${targetMacros.protein}g Protein, ${targetMacros.carbs}g Carbs, ${targetMacros.fat}g Fat)
+- MANDATORY DAILY TARGET MACRO GOALS: ${effectiveMacros.calories} kcal (${effectiveMacros.protein}g Protein, ${effectiveMacros.carbs}g Carbs, ${effectiveMacros.fat}g Fat)
 
 CRITICAL NUTRITIONIST RULES:
 1. USER INPUT ARE ONLY "WISHES/PREFERENCES". You are the Master Nutritionist who decides the optimal balance of whole foods, fiber, and micros.
 2. DO NOT REPEAT THE SAME DISH! If the user requests a food (e.g. "salmon" or "eggs"), integrate it into 1 optimal meal. DO NOT generate 6 salmon poke bowls or repeat dishes across meals. Provide diverse, delicious, high-protein recipes.
 3. MANDATORY ITEMS: ALWAYS include Creatine Monohydrate (5g) and a Whey Protein Shake in the daily schedule!
 4. MEAL TIMING: Assign realistic approximate meal times between 07:00 AM and 22:00 PM (10:00 PM) for the ${mealsPerDay} meals.
-5. STRICT MACRO TARGET MATCHING: The sum of calories and macros across all ${mealsPerDay} meals MUST match the target goals precisely: ${targetMacros.calories} kcal, ${targetMacros.protein}g Protein, ${targetMacros.carbs}g Carbs, ${targetMacros.fat}g Fat (within +/- 2% accuracy).
+5. STRICT MACRO TARGET MATCHING: The sum of calories and macros across all ${mealsPerDay} meals MUST match the user's exact target goals precisely: ${effectiveMacros.calories} kcal, ${effectiveMacros.protein}g Protein, ${effectiveMacros.carbs}g Carbs, ${effectiveMacros.fat}g Fat (within +/- 2% accuracy).
 
 Return JSON format:
 {
@@ -188,7 +194,7 @@ Return JSON format:
     });
   }
 
-  const userMessage = cravings?.trim() || `Generate a custom ${mealsPerDay}-meal daily plan for today.`;
+  const userMessage = cravings?.trim() || `Generate a custom ${mealsPerDay}-meal daily plan for today matching my macro target of ${effectiveMacros.calories} kcal, ${effectiveMacros.protein}g P, ${effectiveMacros.carbs}g C, ${effectiveMacros.fat}g F.`;
   apiMessages.push({ role: 'user', content: userMessage });
 
   return callOpenAI({ apiKey, messages: apiMessages, responseFormat: 'json_object', model: 'gpt-4o' });
@@ -198,6 +204,10 @@ Return JSON format:
  * Daily 23:00 AI Executive Summary & Form Analysis with Multi-Workout & Past Photo Context
  */
 export async function generateDaily23Summary(dailyLog, historicalMemory, videoFrames, weekendPhotos, pastWorkoutLogs, apiKey) {
+  // Extract user profile and target macros safely
+  const userProfile = historicalMemory?.profile || {};
+  const targetMacros = dailyLog.targetMacros || userProfile.targetMacros || { calories: 2500, protein: 180, carbs: 280, fat: 70 };
+
   // Format Saved Workouts for Today cleanly
   const savedWorkoutsToday = (dailyLog.savedWorkouts || []).map((w, idx) => ({
     title: w.workoutName || `Workout #${idx + 1}`,
@@ -220,9 +230,18 @@ export async function generateDaily23Summary(dailyLog, historicalMemory, videoFr
     {
       type: 'text',
       text: `You are GymsLab AI performing the Automatic Daily 23:00 End-of-Day Executive Assessment.
+
+ATHLETE PROFILE & TARGET GOALS:
+- Primary Fitness Goal: ${userProfile.goalType || 'Body Recomposition'}
+- Current Weight: ${dailyLog.weight || userProfile.weight || 80} kg | Target Weight Goal: ${userProfile.targetWeight || 'N/A'} kg
+- Height: ${userProfile.height || 180} cm | Waist: ${userProfile.waist || 85} cm
+- MANDATORY DAILY TARGET MACRO GOALS:
+  * Calories Goal: ${targetMacros.calories} kcal
+  * Protein Goal: ${targetMacros.protein}g
+  * Carbs Goal: ${targetMacros.carbs}g
+  * Fat Goal: ${targetMacros.fat}g
+
 HISTORICAL MEMORY CONTEXT:
-- Profile Goal: ${historicalMemory.profile?.goalType || 'Recomposition'} (Target Weight: ${historicalMemory.profile?.targetWeight || 'N/A'} kg)
-- Baseline Waist: ${historicalMemory.profile?.waist || 'N/A'} cm
 - Past Weight Trend (last 7 days): ${JSON.stringify(historicalMemory.recentWeights || [])}
 - Past Daily Grades: ${JSON.stringify(historicalMemory.recentGrades || [])}
 - Latest 1RM Strength Benchmark: ${JSON.stringify(historicalMemory.latest1RM || 'None logged yet')}
@@ -233,7 +252,11 @@ TODAY'S LOGGED METRICS (${dailyLog.date}):
 - TOTAL WORKOUT DURATION TODAY: ${totalWorkoutTimeMin} minutes (Total active session duration)
 - COMPLETED WORKOUT OBJECTS RECORDED TODAY (${savedWorkoutsToday.length}): ${JSON.stringify(savedWorkoutsToday)}
 - CURRENT ACTIVE EXERCISES LOGGED: ${JSON.stringify(dailyLog.exercises || [])}
-- Total Macros Consumed: Calories: ${dailyLog.totalMacros?.calories || 0} / ${dailyLog.targetMacros?.calories || 2400} kcal, Protein: ${dailyLog.totalMacros?.protein || 0}g / ${dailyLog.targetMacros?.protein || 180}g, Carbs: ${dailyLog.totalMacros?.carbs || 0}g, Fat: ${dailyLog.totalMacros?.fat || 0}g
+- NUTRITION CONSUMED TODAY vs USER TARGET GOALS:
+  * Calories: Consumed ${dailyLog.totalMacros?.calories || 0} kcal / Goal: ${targetMacros.calories} kcal
+  * Protein: Consumed ${dailyLog.totalMacros?.protein || 0}g / Goal: ${targetMacros.protein}g
+  * Carbs: Consumed ${dailyLog.totalMacros?.carbs || 0}g / Goal: ${targetMacros.carbs}g
+  * Fat: Consumed ${dailyLog.totalMacros?.fat || 0}g / Goal: ${targetMacros.fat}g
 - Hydration: ${dailyLog.waterLiters || 0} / 3.5 Liters (${dailyLog.waterGoalMet ? 'Met ✓' : 'Not met'})
 - Daily Steps: ${dailyLog.steps || 0} / 10,000 steps (${dailyLog.stepsGoalMet ? 'Met ✓' : 'Not met'})
 - Daily Supplements: Creatine (5g): ${dailyLog.supplements?.creatine ? 'YES' : 'NO'}, Whey Protein: ${dailyLog.supplements?.protein ? 'YES' : 'NO'}
@@ -244,7 +267,7 @@ TODAY'S LOGGED METRICS (${dailyLog.date}):
 - Cooldown Stretch & Abs Completed: ${dailyLog.cooldownCompleted ? 'YES' : 'NO'}
 - Form Videos Uploaded: ${dailyLog.videos?.length || 0} video clips recorded today.
 
-Analyze today's total workout time, progressive overload (comparing today's weights, reps, and sets against past workout history), macro adherence, and lifestyle metrics.
+Analyze today's total workout time, progressive overload (comparing today's weights, reps, and sets against past workout history), macro adherence against the target goals (${targetMacros.calories} kcal, ${targetMacros.protein}g P, ${targetMacros.carbs}g C, ${targetMacros.fat}g F), and lifestyle metrics.
 If food photos or previous weekend/progress photos are attached below, evaluate diet quality and visual conditioning.
 
 Return JSON:
@@ -252,7 +275,7 @@ Return JSON:
   "grade": "A+" | "A" | "B" | "C" | "D",
   "goalAchieved": true | false,
   "headline": "Punchy 1-line executive title",
-  "nutritionFeedback": "Detailed analysis of calories, macros, 3.5L hydration, and 10k steps",
+  "nutritionFeedback": "Detailed analysis comparing consumed calories/protein/carbs/fat against exact target goals (${targetMacros.calories} kcal, ${targetMacros.protein}g P, ${targetMacros.carbs}g C, ${targetMacros.fat}g F), 3.5L hydration, and 10k steps",
   "workoutFeedback": "Detailed feedback on total workout time (${totalWorkoutTimeMin}m), exercises, weights, reps, sets, and progressive overload vs previous workouts",
   "formAnalysis": "Detailed form breakdown from uploaded videos or food photo assessment",
   "comparativeMemoryInsight": "How today compares to previous workouts, past weights, and baseline goals",
@@ -293,19 +316,24 @@ Return JSON:
  * Weekly Sunday 23:00 AI Assessment with Multi-Photo Memory Vault (Oldest, Last Month, Newest) & 7 Daily AI Summaries
  */
 export async function generateWeeklySummary(weeklyData, historicalMemory, allWeekDailySummaries, photoVault, apiKey) {
+  const userProfile = historicalMemory?.profile || {};
+  const targetMacros = userProfile.targetMacros || { calories: 2500, protein: 180, carbs: 280, fat: 70 };
+
   const contentArray = [
     {
       type: 'text',
       text: `You are GymsLab AI conducting the Mandatory Automatic Sunday 23:00 Weekly Transformation Review.
 
-BASELINE PROFILE & MEASUREMENTS:
-- Baseline Starting Weight: ${historicalMemory.profile?.weight || 80} kg -> Target: ${historicalMemory.profile?.targetWeight || 78} kg
-- Baseline Waist: ${historicalMemory.profile?.waist || 85} cm
-- Baseline Left Bicep: ${historicalMemory.profile?.bicepLeft || 38} cm | Right: ${historicalMemory.profile?.bicepRight || 38.5} cm
+BASELINE PROFILE & ATHLETE TARGET GOALS:
+- Primary Fitness Goal: ${userProfile.goalType || 'Body Recomposition'}
+- Baseline Starting Weight: ${userProfile.weight || 80} kg -> Target Weight Goal: ${userProfile.targetWeight || 78} kg
+- Baseline Waist: ${userProfile.waist || 85} cm
+- Baseline Left Bicep: ${userProfile.bicepLeft || 38} cm | Right: ${userProfile.bicepRight || 38.5} cm
+- MANDATORY DAILY TARGET MACRO GOALS: ${targetMacros.calories} kcal | ${targetMacros.protein}g Protein | ${targetMacros.carbs}g Carbs | ${targetMacros.fat}g Fat
 
 CURRENT SUNDAY CHECK-IN DATA (${weeklyData.weekId || 'Current Week'}):
-- Current Weight: ${weeklyData.weight || historicalMemory.profile?.weight || 80} kg
-- Current Waist: ${weeklyData.waist || historicalMemory.profile?.waist || 85} cm
+- Current Weight: ${weeklyData.weight || userProfile.weight || 80} kg
+- Current Waist: ${weeklyData.waist || userProfile.waist || 85} cm
 - Current Left Bicep: ${weeklyData.bicepLeft || 38} cm | Right: ${weeklyData.bicepRight || 38.5} cm
 - Current Chest: ${weeklyData.chest || 104} cm
 
@@ -329,7 +357,7 @@ Return JSON:
   "muscleGainInsight": "In-depth analysis of bicep/chest measurements, progressive volume, and muscle hypertrophy",
   "physiquePhotoAnalysis": "Comprehensive visual comparison comparing Oldest Baseline photos vs Last Month photos vs Newest photos",
   "weeklySummariesReview": "Synthesis of all 7 daily AI grades and performance trends from Monday to Sunday",
-  "nextWeekAdjustments": "Specific macro and training program adjustments for the upcoming week",
+  "nextWeekAdjustments": "Specific macro and training program adjustments for the upcoming week based on target goals (${targetMacros.calories} kcal, ${targetMacros.protein}g P, ${targetMacros.carbs}g C, ${targetMacros.fat}g F)",
   "overallScore": "A+" | "A" | "B" | "C" | "D"
 }`
     }
@@ -337,21 +365,18 @@ Return JSON:
 
   // Attach Multi-Photo Vault
   if (photoVault) {
-    // 1. Oldest Baseline Photos
     if (photoVault.oldestPhotos) {
       if (photoVault.oldestPhotos.front) contentArray.push({ type: 'image_url', image_url: { url: photoVault.oldestPhotos.front } });
       if (photoVault.oldestPhotos.side) contentArray.push({ type: 'image_url', image_url: { url: photoVault.oldestPhotos.side } });
       if (photoVault.oldestPhotos.back) contentArray.push({ type: 'image_url', image_url: { url: photoVault.oldestPhotos.back } });
     }
 
-    // 2. Last Month Photos
     if (photoVault.lastMonthPhotos) {
       if (photoVault.lastMonthPhotos.front) contentArray.push({ type: 'image_url', image_url: { url: photoVault.lastMonthPhotos.front } });
       if (photoVault.lastMonthPhotos.side) contentArray.push({ type: 'image_url', image_url: { url: photoVault.lastMonthPhotos.side } });
       if (photoVault.lastMonthPhotos.back) contentArray.push({ type: 'image_url', image_url: { url: photoVault.lastMonthPhotos.back } });
     }
 
-    // 3. Newest Photos
     if (photoVault.newestPhotos) {
       if (photoVault.newestPhotos.front) contentArray.push({ type: 'image_url', image_url: { url: photoVault.newestPhotos.front } });
       if (photoVault.newestPhotos.side) contentArray.push({ type: 'image_url', image_url: { url: photoVault.newestPhotos.side } });

@@ -28,7 +28,7 @@ export default function DailySummaryModal({ dailyLog, profile, historicalMemory,
       // Gather food photos logged today
       const weekendPhotos = (dailyLog.foodPhotos || []).map((p) => p?.url).filter(Boolean);
 
-      const res = await generateDaily23Summary(dailyLog, { profile, ...historicalMemory }, allFrames, weekendPhotos, [], apiKey);
+      const res = await generateDaily23Summary(dailyLog, { ...historicalMemory, profile }, allFrames, weekendPhotos, [], apiKey);
       setSummaryData(res);
       onSaveSummary(res);
     } catch (err) {
