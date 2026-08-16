@@ -107,30 +107,32 @@ export async function saveDailyLog(dateStr, logData) {
   const db = await initDB();
   const existing = (await db.get('dailyLogs', dateStr)) || { date: dateStr };
 
-  // Smart non-destructive merge: Protect existing recorded items if logData passes empty/null arrays from a partial update
+  // Smart non-destructive merge: If logData omits property keys (partial update), preserve existing database properties
   const merged = { ...existing, ...logData, date: dateStr, updatedAt: new Date().toISOString() };
 
-  if (Array.isArray(existing.meals) && existing.meals.length > 0 && Array.isArray(logData.meals) && logData.meals.length === 0 && !logData._allowEmptyMeals) {
+  const hasProp = (key) => Object.prototype.hasOwnProperty.call(logData, key) && logData[key] != null;
+
+  if (!hasProp('meals') && Array.isArray(existing.meals)) {
     merged.meals = existing.meals;
   }
 
-  if (Array.isArray(existing.savedWorkouts) && existing.savedWorkouts.length > 0 && Array.isArray(logData.savedWorkouts) && logData.savedWorkouts.length === 0 && !logData._allowEmptySavedWorkouts) {
+  if (!hasProp('savedWorkouts') && Array.isArray(existing.savedWorkouts)) {
     merged.savedWorkouts = existing.savedWorkouts;
   }
 
-  if (Array.isArray(existing.exercises) && existing.exercises.length > 0 && Array.isArray(logData.exercises) && logData.exercises.length === 0 && !logData._allowEmptyExercises) {
+  if (!hasProp('exercises') && Array.isArray(existing.exercises)) {
     merged.exercises = existing.exercises;
   }
 
-  if (Array.isArray(existing.foodPhotos) && existing.foodPhotos.length > 0 && Array.isArray(logData.foodPhotos) && logData.foodPhotos.length === 0 && !logData._allowEmptyPhotos) {
+  if (!hasProp('foodPhotos') && Array.isArray(existing.foodPhotos)) {
     merged.foodPhotos = existing.foodPhotos;
   }
 
-  if (Array.isArray(existing.videos) && existing.videos.length > 0 && Array.isArray(logData.videos) && logData.videos.length === 0 && !logData._allowEmptyVideos) {
+  if (!hasProp('videos') && Array.isArray(existing.videos)) {
     merged.videos = existing.videos;
   }
 
-  if (existing.weight != null && logData.weight == null) {
+  if (!hasProp('weight') && existing.weight != null) {
     merged.weight = existing.weight;
   }
 

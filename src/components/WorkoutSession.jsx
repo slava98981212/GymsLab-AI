@@ -359,8 +359,13 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   };
 
   const confirmDeleteSavedWorkout = () => {
-    if (deletingWorkoutId === null) return;
-    const updated = savedWorkouts.filter((w, i) => (w.workoutId ? w.workoutId !== deletingWorkoutId : i !== deletingWorkoutId));
+    if (deletingWorkoutId == null) return;
+    const updated = savedWorkouts.filter((w, i) => {
+      if (typeof deletingWorkoutId === 'string' && w.workoutId) {
+        return w.workoutId !== deletingWorkoutId;
+      }
+      return i !== deletingWorkoutId;
+    });
     onUpdateLog({ savedWorkouts: updated });
     setDeletingWorkoutId(null);
     setEditingWorkoutObj(null);
