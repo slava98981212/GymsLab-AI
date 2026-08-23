@@ -335,3 +335,124 @@ export const PRESET_EXERCISES = [
   { id: 'e15', name: 'SUPERSET: Dumbbell Press + Dumbbell Butterfly', muscle: 'Chest & Shoulders' },
   { id: 'e16', name: 'Dumbbell Butterfly (Flyes)', muscle: 'Chest' }
 ];
+
+export const ALL_WORKOUT_ROUTINES = [
+  {
+    id: 'calisthenics',
+    title: 'Calisthenics Skill Focus',
+    tag: 'Calisthenics',
+    icon: 'Flame',
+    description: 'Handstands, Gymnastic Rings, Front Lever, L-Sit, High Pulls, 1-Arm Push-ups',
+    exercises: [
+      { id: 'cal_1', name: 'Handstand Hold / Practice', targetSets: 4, targetReps: 10, restSec: 120, note: '2 min hold practice' },
+      { id: 'cal_2', name: 'Gymnastic Ring Work (MAX REPS)', targetSets: 3, targetReps: 12, restSec: 120, note: 'Ring Dips / Muscle-ups' },
+      { id: 'cal_3', name: 'Front Lever Hold & L-Sit', targetSets: 4, targetReps: 10, restSec: 120, note: 'Static holds' },
+      { id: 'cal_4', name: 'High Pulls & 1-Arm Push-ups', targetSets: 4, targetReps: 8, restSec: 120, note: 'Explosive push/pull' }
+    ]
+  },
+  {
+    id: 'calves_abs',
+    title: 'Calves & Abs Routine',
+    tag: 'Abs & Calves',
+    icon: 'Zap',
+    description: 'Rope Jumps, Double Unders, Calf Machine, Abs & Tibialis Superset',
+    exercises: [
+      { id: 'ca_1', name: 'Rope Jumps (Switching Single Leg)', targetSets: 3, targetReps: 50, restSec: 30, note: '50 reps' },
+      { id: 'ca_2', name: 'Double Unders', targetSets: 3, targetReps: 50, restSec: 30, note: '50 reps' },
+      { id: 'ca_3', name: 'Calf Machine (Weight Log)', targetSets: 4, targetReps: 15, restSec: 60, note: 'Rest 60s' },
+      {
+        id: 'ca_4',
+        name: 'SUPERSET: Tibialis Raises + Abs Crunches + Russian Swings',
+        isSuperset: true,
+        subExercises: ['Tibialis Raises (15 reps)', 'Abs Crunches (20 reps)', 'Russian Swings (20 reps)'],
+        targetSets: 4,
+        restSec: 60,
+        note: 'Rest 60s'
+      }
+    ]
+  },
+  {
+    id: 'chest_back',
+    title: 'Chest & Back (Upper Body)',
+    tag: 'Chest & Back',
+    icon: 'Dumbbell',
+    description: 'Flat Bench + Pull-ups Superset, Lat Pulldown, Incline Dumbbell Press + Flyes Superset, Cable Rows',
+    exercises: [
+      { id: 'cb_1', name: 'Weighted Dips', targetSets: 4, targetReps: 8, restSec: 120, note: 'Rest 2 min' },
+      {
+        id: 'cb_2',
+        name: 'SUPERSET: Flat Bench Press + Supinated Pull-ups (15 reps)',
+        isSuperset: true,
+        subExercises: ['Flat Bench Press (8 reps)', 'Supinated Pull-ups (15 reps)'],
+        targetSets: 4,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
+      { id: 'cb_3', name: 'Lat Pulldown', targetSets: 4, targetReps: 10, restSec: 120, note: 'Rest 2 min' },
+      {
+        id: 'cb_4',
+        name: 'SUPERSET: Incline Dumbbell Press + Dumbbell Butterfly (Flyes)',
+        isSuperset: true,
+        subExercises: ['Incline Dumbbell Press (10 reps)', 'Dumbbell Butterfly (Flyes) (12 reps)'],
+        targetSets: 3,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
+      { id: 'cb_5', name: 'Seated Cable Row', targetSets: 3, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
+      { id: 'cb_6', name: 'Weighted Pull-ups', targetSets: 3, targetReps: 6, restSec: 180, note: 'Rest 3 min' }
+    ]
+  },
+  {
+    id: 'legs',
+    title: 'Legs (Leg Day)',
+    tag: 'Leg Focus',
+    icon: 'Activity',
+    description: 'Deadlifts, Front Squats, Hack Squats, Hip Thrusts, Leg Extension & Lying Leg Curls',
+    exercises: [
+      { id: 'lg_1', name: 'Conventional / Sumo Deadlift', targetSets: 4, targetReps: 5, restSec: 180, note: 'Rest 3 min' },
+      { id: 'lg_2', name: 'Barbell Front Squat', targetSets: 3, targetReps: 8, restSec: 180, note: 'Rest 3 min' },
+      { id: 'lg_3', name: 'Hack Squat Machine', targetSets: 3, targetReps: 10, restSec: 120, note: 'Rest 2 min' },
+      {
+        id: 'lg_4',
+        name: 'SUPERSET: Barbell Hip Thrust + Seated Hip Abduction',
+        isSuperset: true,
+        subExercises: ['Barbell Hip Thrust (12 reps)', 'Seated Hip Abduction (15 reps)'],
+        targetSets: 4,
+        restSec: 120,
+        note: 'Rest 2 min'
+      },
+      { id: 'lg_5', name: 'Leg Extension', targetSets: 3, targetReps: 12, restSec: 90, note: 'Rest 90s' },
+      { id: 'lg_6', name: 'Lying Leg Curl', targetSets: 3, targetReps: 12, restSec: 90, note: 'Rest 90s' }
+    ]
+  },
+  {
+    id: 'arms',
+    title: 'Arms & Shoulders',
+    tag: 'Arms & Shoulders',
+    icon: 'Layers',
+    description: 'Dumbbell Shoulder Press + Flyes Superset, Seated Bicep Curls, Lying Skullcrushers + Hammer Curls, Incline Curls',
+    exercises: [
+      {
+        id: 'arm_1',
+        name: 'SUPERSET: Dumbbell Shoulder Press + Dumbbell Butterfly (Flyes)',
+        isSuperset: true,
+        subExercises: ['Dumbbell Shoulder Press (10 reps)', 'Dumbbell Butterfly (Flyes) (12 reps)'],
+        targetSets: 4,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
+      { id: 'arm_2', name: 'Seated Bicep Curls', targetSets: 4, targetReps: 12, restSec: 120, note: 'Rest 2 min' },
+      {
+        id: 'arm_3',
+        name: 'SUPERSET: Lying Triceps Extension + Hammer Curls',
+        isSuperset: true,
+        subExercises: ['Lying Triceps Skullcrushers (10 reps)', 'Dumbbell Hammer Curls (10 reps)'],
+        targetSets: 4,
+        restSec: 180,
+        note: 'Rest 3 min'
+      },
+      { id: 'arm_4', name: 'Incline Dumbbell Bicep Curl', targetSets: 3, targetReps: 10, restSec: 120, note: 'Rest 2 min' },
+      { id: 'arm_5', name: 'Close Grip Bench Press', targetSets: 4, targetReps: 8, restSec: 180, note: 'Rest 3 min' }
+    ]
+  }
+];

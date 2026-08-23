@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dumbbell, Flame, Timer, CheckSquare, Square, Plus, Play, Pause, RotateCcw, HeartPulse, Sparkles, Calendar, Zap, Layers, History, FlameKindling, Check, Trash2, Edit2, X, Award, AlertTriangle, ArrowRight, CheckCircle2, Camera } from 'lucide-react';
-import { WEEKLY_WORKOUT_SPLIT, MON_WED_FRI_ROUTINE, PRESET_EXERCISES } from '../utils/constants';
+import { WEEKLY_WORKOUT_SPLIT, MON_WED_FRI_ROUTINE, PRESET_EXERCISES, ALL_WORKOUT_ROUTINES } from '../utils/constants';
 import ExerciseRunnerModal from './ExerciseRunnerModal';
 import { validateVideoDuration, extractVideoFrames } from '../utils/videoUtils';
 import {
@@ -74,6 +74,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   // Overall Workout Active State & Timer
   const [workoutActive, setWorkoutActive] = useState(dailyLog?.workoutActive || false);
   const [workoutElapsedSecs, setWorkoutElapsedSecs] = useState(dailyLog?.workoutDurationSecs || 0);
+  const [workoutStartMs, setWorkoutStartMs] = useState(dailyLog?.workoutStartMs || null);
 
   // Workout Summary Modal State
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -83,6 +84,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   const [deletingExIdx, setDeletingExIdx] = useState(null);
   const [editingWorkoutObj, setEditingWorkoutObj] = useState(null);
   const [deletingWorkoutId, setDeletingWorkoutId] = useState(null);
+  const [showRoutinePickerModal, setShowRoutinePickerModal] = useState(false);
 
   // Special Checkboxes State
   const calisthenicsCompleted = dailyLog?.calisthenicsCompleted || false;
@@ -241,6 +243,70 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     });
 
     setActiveStage('main');
+  };
+
+  const handleSelectRoutine = (routineObj) => {
+    let startMs = workoutStartMs;
+    if (!startMs || startMs <= 0) {
+      startMs = Date.now();
+      setWorkoutStartMs(startMs);
+    }
+
+    let existingSecs = workoutElapsedSecs;
+    if (!workoutActive) {
+      setWorkoutActive(true);
+      startGlobalWorkoutClock(existingSecs);
+    }
+
+    const routineExs = (routineObj.exercises || []).map((progEx) => {
+      const pastSets = getPreviousSetsForExercise(progEx.id, progEx.name);
+      const targetSetsCount = progEx.targetSets || (pastSets ? pastSets.length : 4);
+      const initialSets = [];
+
+      if (pastSets && pastSets.length > 0) {
+        for (let i = 0; i < targetSetsCount; i++) {
+          const pastSet = pastSets[i] || pastSets[pastSets.length - 1];
+          initialSets.push({
+            setNum: i + 1,
+            weight: pastSet.weight ?? 60,
+            reps: pastSet.reps ?? (progEx.targetReps || 10),
+            exAWeight: pastSet.exAWeight ?? 60,
+            exAReps: pastSet.exAReps ?? 8,
+            exBWeight: pastSet.exBWeight ?? 0,
+            exBReps: pastSet.exBReps ?? 10,
+            completed: false
+          });
+        }
+      } else {
+        for (let i = 1; i <= targetSetsCount; i++) {
+          initialSets.push({ setNum: i, weight: 60, reps: progEx.targetReps || 10, completed: false });
+        }
+      }
+
+      return {
+        exerciseId: progEx.id,
+        name: progEx.name,
+        isSuperset: progEx.isSuperset || false,
+        subExercises: progEx.subExercises || [],
+        restSec: progEx.restSec || 120,
+        note: progEx.note || '',
+        startedAt: Date.now(),
+        sets: initialSets
+      };
+    });
+
+    const updated = [...exercises, ...routineExs.filter((re) => !exercises.some((e) => e.exerciseId === re.exerciseId || e.name === re.name))];
+
+    onUpdateLog({
+      workoutActive: true,
+      workoutDurationSecs: existingSecs,
+      workoutStartMs: startMs,
+      activeWorkoutType: routineObj.id,
+      exercises: updated
+    });
+
+    setActiveStage('main');
+    setShowRoutinePickerModal(false);
   };
 
   const handlePauseWorkout = () => {
@@ -828,6 +894,55 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
               >
                 ⚡ Start Workout #2 <Zap size={14} />
               </button>
+            </div>
+          </div>
+
+          {/* ALL 5 WORKOUT ROUTINES SELECTOR GRID */}
+          <div style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', borderRadius: '16px', padding: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-amber)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Layers size={16} /> ADD ANY WORKOUT ROUTINE TO TODAY:
+              </div>
+              <button
+                onClick={() => setShowRoutinePickerModal(true)}
+                className="btn-secondary"
+                style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
+              >
+                + View All <Plus size={14} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+              {ALL_WORKOUT_ROUTINES.map((routine) => (
+                <div
+                  key={routine.id}
+                  style={{
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid var(--border-card)',
+                    borderRadius: '12px',
+                    padding: '0.65rem 0.85rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      {routine.title}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {routine.description}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleSelectRoutine(routine)}
+                    className="btn-emerald"
+                    style={{ marginTop: '0.65rem', padding: '0.35rem 0.5rem', fontSize: '0.72rem', width: '100%', justifyContent: 'center' }}
+                  >
+                    + Add & Start <Plus size={12} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -1830,6 +1945,66 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
               >
                 Yes, Delete Session
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ALL ROUTINES PICKER MODAL */}
+      {showRoutinePickerModal && (
+        <div className="modal-overlay" onClick={() => setShowRoutinePickerModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <span className="badge badge-amber"><Layers size={12} /> WORKOUT ROUTINES</span>
+                <h2 style={{ fontSize: '1.25rem', marginTop: '0.25rem' }}>Select Routine to Add & Start</h2>
+              </div>
+              <button onClick={() => setShowRoutinePickerModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Tap <strong>+ Add & Start</strong> on any routine below to load its full exercise program and start tracking immediately:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {ALL_WORKOUT_ROUTINES.map((routine) => (
+                <div
+                  key={routine.id}
+                  style={{
+                    background: 'rgba(2, 6, 23, 0.7)',
+                    border: '1px solid var(--border-card)',
+                    borderRadius: '14px',
+                    padding: '0.85rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                      <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>{routine.tag}</span>
+                      <h3 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-main)' }}>{routine.title}</h3>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                      {routine.description}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--primary-cyan)', fontWeight: 600 }}>
+                      {routine.exercises.length} movements included
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleSelectRoutine(routine)}
+                    className="btn-emerald"
+                    style={{ padding: '0.55rem 0.85rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                  >
+                    + Add & Start <Plus size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
