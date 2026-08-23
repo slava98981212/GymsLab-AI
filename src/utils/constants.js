@@ -333,10 +333,45 @@ export const PRESET_EXERCISES = [
   { id: 'e13', name: 'Leg Extension', muscle: 'Quads' },
   { id: 'e14', name: 'Lying Leg Curl', muscle: 'Hamstrings' },
   { id: 'e15', name: 'SUPERSET: Dumbbell Press + Dumbbell Butterfly', muscle: 'Chest & Shoulders' },
-  { id: 'e16', name: 'Dumbbell Butterfly (Flyes)', muscle: 'Chest' }
+  { id: 'e16', name: 'Dumbbell Butterfly (Flyes)', muscle: 'Chest' },
+  { id: 'e17', name: 'Bar Muscle-ups', muscle: 'Full Upper Body' },
+  { id: 'e18', name: 'Handstand Push-ups / Walk', muscle: 'Shoulders & Core' },
+  { id: 'e19', name: 'L-Sit Hold', muscle: 'Abs & Core' },
+  { id: 'e20', name: 'Penguin Curls', muscle: 'Biceps & Core' }
 ];
 
 export const ALL_WORKOUT_ROUTINES = [
+  {
+    id: 'street_workout',
+    title: 'Street Workout',
+    tag: 'Street Workout',
+    icon: 'Flame',
+    description: '10m Rope Jump, Handstand Hold/Walk/Push-ups, Bar Muscle-ups, L-Sit, 5-Min AMRAP & 10-Min Finisher',
+    exercises: [
+      { id: 'sw_w1', name: 'Rope Jump Warmup (10 min)', targetSets: 1, targetReps: 1, restSec: 60, note: '10 minutes continuous rope jump warmup' },
+      { id: 'sw_m1', name: 'Handstand Hold / Handstand Walk / Handstand Push-ups', targetSets: 4, targetReps: 10, restSec: 120, note: 'Skill & Over-Head Strength' },
+      { id: 'sw_m2', name: 'Bar Muscle-ups', targetSets: 4, targetReps: 6, restSec: 180, note: 'Clean explosive bar muscle-ups' },
+      { id: 'sw_m3', name: 'L-Sit Hold', targetSets: 4, targetReps: 10, restSec: 90, note: 'Parallettes / Floor / Bar static hold' },
+      {
+        id: 'sw_m4',
+        name: '5-Min Bodyweight Flow: 10 Push-ups + 5 Pull-ups + 5 Chin-ups + 20 Air Squats',
+        isSuperset: true,
+        subExercises: ['Push-ups (10 reps) + Pull-ups (5 reps)', 'Chin-ups (5 reps) + Air Squats (20 reps)'],
+        targetSets: 3,
+        restSec: 120,
+        note: 'Continuous 5-minute bodyweight AMRAP rounds'
+      },
+      {
+        id: 'sw_m5',
+        name: '10-Min Finisher: 1m Bicep Curls + 1m Penguin Curls + 30s Hollow + 10 Leg Raises',
+        isSuperset: true,
+        subExercises: ['1m Bicep Curls + 1m Penguin Curls', '30s Hollow Position + 10 Leg Raises'],
+        targetSets: 3,
+        restSec: 90,
+        note: '10-minute continuous arm & core burnout'
+      }
+    ]
+  },
   {
     id: 'calisthenics',
     title: 'Calisthenics Skill Focus',
