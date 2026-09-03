@@ -31,8 +31,23 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   const [selectedDay, setSelectedDay] = useState(() => getDayNameFromDateStr(dailyLog?.date));
   const [activeStage, setActiveStage] = useState('main');
 
-  // Active Workout Type derived directly from dailyLog state ('workout1' vs 'workout2')
+  // Active Workout Type & Title derived directly from dailyLog state
   const activeWorkoutType = dailyLog?.activeWorkoutType || 'workout1';
+  const activeWorkoutTitle = dailyLog?.activeWorkoutTitle || (
+    activeWorkoutType === 'workout2'
+      ? 'Calves & Abs Routine'
+      : activeWorkoutType === 'street_workout'
+      ? 'Street Workout'
+      : activeWorkoutType === 'legs'
+      ? 'Legs (Leg Day)'
+      : activeWorkoutType === 'calisthenics'
+      ? 'Calisthenics Skill Focus'
+      : activeWorkoutType === 'chest_back'
+      ? 'Chest & Back'
+      : activeWorkoutType === 'arms'
+      ? 'Arms & Shoulders'
+      : currentDayProgram.dayName
+  );
   const [videoLoading, setVideoLoading] = useState(false);
 
   // Keep selectedDay in sync with dailyLog.date changes from Header Date Navigator
@@ -289,6 +304,8 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
     const updated = [...exercises, ...routineExs.filter((re) => !exercises.some((e) => e.exerciseId === re.exerciseId || e.name === re.name))];
 
+    const rTitle = routineObj.title || routineObj.name || currentDayProgram.dayName;
+
     if (autoStart) {
       let startMs = workoutStartMs || Date.now();
       setWorkoutStartMs(startMs);
@@ -300,12 +317,14 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
         workoutDurationSecs: workoutElapsedSecs,
         workoutStartMs: startMs,
         activeWorkoutType: routineObj.id,
+        activeWorkoutTitle: rTitle,
         exercises: updated
       });
     } else {
       onUpdateLog({
         workoutActive: false,
         activeWorkoutType: routineObj.id,
+        activeWorkoutTitle: rTitle,
         exercises: updated
       });
     }
@@ -1078,7 +1097,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                 <div>
                   <span className="badge badge-cyan">READY TO START 🚀</span>
                   <h2 style={{ fontSize: '1.35rem', marginTop: '0.25rem', fontWeight: 900, color: 'var(--primary-cyan)' }}>
-                    🏋️ Today's Workout Routine
+                    🏋️ {activeWorkoutTitle}
                   </h2>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
                     {exercises.length} exercises added to {selectedDay}. Review your lifts below and click Start Workout when ready!
@@ -1284,7 +1303,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                   <Timer size={12} className={workoutActive ? 'spin' : ''} /> {workoutActive ? 'WORKOUT IN PROGRESS' : 'TIMER PAUSED ⏸️'}
                 </span>
                 <h2 style={{ fontSize: '1.3rem', marginTop: '0.25rem' }}>
-                  {activeWorkoutType === 'workout2' ? '⚡ Workout #2: Calves & Abs Routine' : `🏋️ Workout #1: ${currentDayProgram.dayName}`}
+                  🏋️ Workout Session: {activeWorkoutTitle}
                 </h2>
               </div>
 
