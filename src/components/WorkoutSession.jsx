@@ -86,6 +86,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   const [editingWorkoutObj, setEditingWorkoutObj] = useState(null);
   const [deletingWorkoutId, setDeletingWorkoutId] = useState(null);
   const [showRoutinePickerModal, setShowRoutinePickerModal] = useState(false);
+  const [showAddWorkoutList, setShowAddWorkoutList] = useState(false);
   const [aiPromptText, setAiPromptText] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
 
@@ -248,19 +249,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     setActiveStage('main');
   };
 
-  const handleSelectRoutine = (routineObj) => {
-    let startMs = workoutStartMs;
-    if (!startMs || startMs <= 0) {
-      startMs = Date.now();
-      setWorkoutStartMs(startMs);
-    }
-
-    let existingSecs = workoutElapsedSecs;
-    if (!workoutActive) {
-      setWorkoutActive(true);
-      startGlobalWorkoutClock(existingSecs);
-    }
-
+  const handleSelectRoutine = (routineObj, autoStart = false) => {
     const routineExs = (routineObj.exercises || []).map((progEx) => {
       const pastSets = getPreviousSetsForExercise(progEx.id, progEx.name);
       const targetSetsCount = progEx.targetSets || (pastSets ? pastSets.length : 4);
@@ -300,16 +289,43 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
     const updated = [...exercises, ...routineExs.filter((re) => !exercises.some((e) => e.exerciseId === re.exerciseId || e.name === re.name))];
 
-    onUpdateLog({
-      workoutActive: true,
-      workoutDurationSecs: existingSecs,
-      workoutStartMs: startMs,
-      activeWorkoutType: routineObj.id,
-      exercises: updated
-    });
+    if (autoStart) {
+      let startMs = workoutStartMs || Date.now();
+      setWorkoutStartMs(startMs);
+      setWorkoutActive(true);
+      startGlobalWorkoutClock(workoutElapsedSecs);
+
+      onUpdateLog({
+        workoutActive: true,
+        workoutDurationSecs: workoutElapsedSecs,
+        workoutStartMs: startMs,
+        activeWorkoutType: routineObj.id,
+        exercises: updated
+      });
+    } else {
+      onUpdateLog({
+        workoutActive: false,
+        activeWorkoutType: routineObj.id,
+        exercises: updated
+      });
+    }
 
     setActiveStage('main');
     setShowRoutinePickerModal(false);
+    setShowAddWorkoutList(false);
+  };
+
+  const handleStartWorkoutSessionNow = () => {
+    let startMs = workoutStartMs || Date.now();
+    setWorkoutStartMs(startMs);
+    setWorkoutActive(true);
+    startGlobalWorkoutClock(workoutElapsedSecs);
+
+    onUpdateLog({
+      workoutActive: true,
+      workoutDurationSecs: workoutElapsedSecs,
+      workoutStartMs: startMs
+    });
   };
 
   const handleGenerateAiWorkout = async () => {
@@ -333,7 +349,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           id: `ai_custom_${Date.now()}`,
           title: result.workoutTitle || 'Custom AI Workout',
           exercises: result.exercises
-        });
+        }, false);
         setAiPromptText('');
       } else {
         alert('AI could not parse a valid workout routine from your prompt. Please try describing it differently!');
@@ -834,127 +850,193 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
 
       {/* WORKOUT STATE SCREEN 1: PRE-WORKOUT OVERVIEW (BEFORE START WORKOUT IS CLICKED) */}
       {!workoutActive && workoutElapsedSecs === 0 ? (
-        <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))', border: '1px solid var(--primary-cyan)', boxShadow: '0 0 25px rgba(6, 182, 212, 0.15)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <div>
-              <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>➕ WORKOUT LOGGING</span>
-              <h2 style={{ fontSize: '1.5rem', marginTop: '0.35rem', fontWeight: 900, color: 'var(--text-main)' }}>
-                + Add a Workout
-              </h2>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-                Select a workout routine below or tell AI what you are doing today to customize:
-              </p>
-            </div>
-            <Dumbbell color="var(--primary-cyan)" size={32} />
-          </div>
-
-          {/* AI CUSTOM WORKOUT GENERATOR BOX */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(59, 130, 246, 0.12))',
-            border: '1px solid var(--primary-cyan)',
-            borderRadius: '16px',
-            padding: '1rem',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Sparkles size={16} /> 🤖 AI CUSTOM WORKOUT GENERATOR:
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              Tell AI what exercises, muscles, or style you want to train today. AI will build and launch your custom workout:
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                value={aiPromptText}
-                onChange={(e) => setAiPromptText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleGenerateAiWorkout()}
-                placeholder="e.g. '30 min kettlebell swings & pullups', 'Street workout with dips & leg raises'..."
-                className="input-field"
-                style={{ flex: 1, fontSize: '0.85rem', padding: '0.7rem 0.85rem' }}
-                disabled={aiGenerating}
-              />
-              <button
-                onClick={handleGenerateAiWorkout}
-                className="btn-primary"
-                disabled={aiGenerating || !aiPromptText.trim()}
-                style={{ padding: '0.7rem 1.1rem', fontSize: '0.85rem', whiteSpace: 'nowrap', background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}
-              >
-                {aiGenerating ? 'Building...' : '🤖 AI Customize'}
-              </button>
-            </div>
-          </div>
-
-          {/* LIST OF ALL WORKOUT ROUTINES */}
-          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-amber)', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Layers size={16} /> SELECT A WORKOUT ROUTINE TO START:
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {/* TODAY'S SCHEDULED SPLIT ITEM */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* PRIMARY + ADD WORKOUT BOX CARD */}
+          <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))', border: '1px solid var(--primary-cyan)', boxShadow: '0 0 25px rgba(6, 182, 212, 0.15)' }}>
             <div
+              onClick={() => setShowAddWorkoutList(!showAddWorkoutList)}
               style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(15, 23, 42, 0.85))',
-                border: '1px solid var(--accent-emerald)',
-                borderRadius: '14px',
-                padding: '0.85rem 1rem',
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '0.75rem'
+                alignItems: 'center',
+                cursor: 'pointer',
+                userSelect: 'none'
               }}
             >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>SCHEDULED FOR TODAY</span>
-                  <h3 style={{ fontSize: '0.98rem', margin: 0, color: 'var(--accent-emerald)' }}>
-                    🏋️ {currentDayProgram.dayName}
-                  </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <div style={{ background: 'rgba(6, 182, 212, 0.15)', border: '1px solid var(--primary-cyan)', borderRadius: '14px', padding: '0.75rem' }}>
+                  <Plus color="var(--primary-cyan)" size={26} />
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  {currentDayProgram.mainExercises?.length || 0} Main Lifts & Supersets programmed for {selectedDay}
+                <div>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>WORKOUT PROGRAM SELECTION</span>
+                  <h2 style={{ fontSize: '1.4rem', marginTop: '0.2rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                    + Add Workout
+                  </h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
+                    Click to choose from all workout routines or generate an AI custom workout
+                  </p>
                 </div>
               </div>
-              <button onClick={handleStartWorkout} className="btn-emerald" style={{ padding: '0.55rem 0.95rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                Start Split 🚀
+              <button className="btn-secondary" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
+                {showAddWorkoutList ? 'Close ✕' : 'Select Routine ▼'}
               </button>
             </div>
 
-            {/* ALL ROUTINES LIST */}
-            {ALL_WORKOUT_ROUTINES.map((routine) => (
-              <div
-                key={routine.id}
-                style={{
-                  background: 'rgba(2, 6, 23, 0.65)',
-                  border: '1px solid var(--border-card)',
-                  borderRadius: '14px',
-                  padding: '0.85rem 1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem'
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
-                    <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>{routine.tag}</span>
-                    <h3 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-main)' }}>{routine.title}</h3>
+            {showAddWorkoutList && (
+              <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-card)' }}>
+                {/* AI CUSTOM WORKOUT GENERATOR BOX */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(59, 130, 246, 0.12))',
+                  border: '1px solid var(--primary-cyan)',
+                  borderRadius: '16px',
+                  padding: '1rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-cyan)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Sparkles size={16} /> 🤖 AI CUSTOM WORKOUT GENERATOR:
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {routine.description}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                    Tell AI what exercises, muscles, or style you want to train today. AI will build your workout:
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={aiPromptText}
+                      onChange={(e) => setAiPromptText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleGenerateAiWorkout()}
+                      placeholder="e.g. '30 min kettlebell swings & pullups', 'Street workout with dips & leg raises'..."
+                      className="input-field"
+                      style={{ flex: 1, fontSize: '0.85rem', padding: '0.7rem 0.85rem' }}
+                      disabled={aiGenerating}
+                    />
+                    <button
+                      onClick={handleGenerateAiWorkout}
+                      className="btn-primary"
+                      disabled={aiGenerating || !aiPromptText.trim()}
+                      style={{ padding: '0.7rem 1.1rem', fontSize: '0.85rem', whiteSpace: 'nowrap', background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}
+                    >
+                      {aiGenerating ? 'Building...' : '+ Add Custom AI'}
+                    </button>
                   </div>
                 </div>
 
+                {/* LIST OF ALL WORKOUT ROUTINES */}
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-amber)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Layers size={16} /> CHOOSE WORKOUT ROUTINE TO ADD:
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {/* TODAY'S SCHEDULED SPLIT ITEM */}
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(15, 23, 42, 0.85))',
+                      border: '1px solid var(--accent-emerald)',
+                      borderRadius: '14px',
+                      padding: '0.85rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>SCHEDULED FOR TODAY</span>
+                        <h3 style={{ fontSize: '0.98rem', margin: 0, color: 'var(--accent-emerald)' }}>
+                          🏋️ {currentDayProgram.dayName}
+                        </h3>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        {currentDayProgram.mainExercises?.length || 0} Main Lifts & Supersets programmed for {selectedDay}
+                      </div>
+                    </div>
+                    <button onClick={() => handleSelectRoutine({ id: 'scheduled_split', exercises: currentDayProgram.mainExercises || [] }, false)} className="btn-emerald" style={{ padding: '0.55rem 0.95rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                      + Add to Today <Plus size={14} />
+                    </button>
+                  </div>
+
+                  {/* ALL ROUTINES LIST */}
+                  {ALL_WORKOUT_ROUTINES.map((routine) => (
+                    <div
+                      key={routine.id}
+                      style={{
+                        background: 'rgba(2, 6, 23, 0.65)',
+                        border: '1px solid var(--border-card)',
+                        borderRadius: '14px',
+                        padding: '0.85rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem'
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                          <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>{routine.tag}</span>
+                          <h3 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-main)' }}>{routine.title}</h3>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {routine.description}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleSelectRoutine(routine, false)}
+                        className="btn-emerald"
+                        style={{ padding: '0.55rem 0.95rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                      >
+                        + Add to Today <Plus size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ADDED WORKOUT ROUTINE ON TODAY'S PAGE (READY TO START) */}
+          {!workoutActive && exercises.length > 0 && (
+            <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(15, 23, 42, 0.95))', border: '1px solid var(--primary-cyan)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div>
+                  <span className="badge badge-cyan">READY TO START 🚀</span>
+                  <h2 style={{ fontSize: '1.35rem', marginTop: '0.25rem', fontWeight: 900, color: 'var(--primary-cyan)' }}>
+                    🏋️ Today's Workout Routine
+                  </h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
+                    {exercises.length} exercises added to {selectedDay}. Review your lifts below and click Start Workout when ready!
+                  </p>
+                </div>
+
+                {/* BIG START WORKOUT BUTTON */}
                 <button
-                  onClick={() => handleSelectRoutine(routine)}
-                  className="btn-emerald"
-                  style={{ padding: '0.55rem 0.95rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                  onClick={handleStartWorkoutSessionNow}
+                  className="btn-primary"
+                  style={{ padding: '0.85rem 1.5rem', fontSize: '1rem', fontWeight: 900, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 18px rgba(16, 185, 129, 0.4)', whiteSpace: 'nowrap' }}
                 >
-                  + Add & Start <Plus size={14} />
+                  🚀 START WORKOUT <ArrowRight size={18} />
                 </button>
               </div>
-            ))}
-          </div>
+
+              {/* List of Added Exercises */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {exercises.map((ex, idx) => (
+                  <div key={ex.exerciseId || idx} style={{ background: 'rgba(2, 6, 23, 0.6)', border: '1px solid var(--border-card)', borderRadius: '12px', padding: '0.75rem 0.95rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        • {ex.name}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        {ex.sets?.length || 4} sets programmed | Rest: {ex.restSec || 120}s {ex.note ? `| ${ex.note}` : ''}
+                      </div>
+                    </div>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>ADDED ✓</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quick Historical Performance Reminders for Scheduled Exercises */}
           {currentDayProgram.mainExercises && currentDayProgram.mainExercises.length > 0 && (
