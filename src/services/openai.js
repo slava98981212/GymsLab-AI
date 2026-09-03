@@ -428,31 +428,31 @@ Return JSON:
  */
 export async function generateCustomWorkoutFromPrompt({ apiKey, promptText, profile = {} }) {
   const systemPrompt = `You are GymsLab AI, an elite strength & conditioning coach.
-Generate a high-quality, customized workout routine based on the user's input prompt.
+The user wants to generate a custom workout routine (e.g., "Leg press 3 sets 5 reps", "Bench press 4x8 and dips").
+Parse their prompt accurately to extract exercise names, exact targetSets (number of sets), exact targetReps (number of reps per set), restSec (rest timer in seconds, default 120s), and coaching notes.
 
 User Profile:
 - Goal: ${profile.primaryGoal || 'Hypertrophy & Strength'}
-- Target Weight: ${profile.targetWeight || 'N/A'} kg
 
-Return ONLY a JSON object formatted strictly as:
+Return ONLY a JSON object matching this schema:
 {
-  "workoutTitle": "Catchy Title for the Workout",
+  "workoutTitle": "String title for the workout",
   "exercises": [
     {
       "name": "Exercise Name or Superset Name",
       "isSuperset": false,
-      "subExercises": ["Exercise A (10 reps)", "Exercise B (12 reps)"],
-      "targetSets": 4,
-      "targetReps": 10,
-      "restSec": 90,
-      "note": "Form cue or coach note"
+      "subExercises": [],
+      "targetSets": 3,
+      "targetReps": 5,
+      "restSec": 120,
+      "note": "Coaching guidance note"
     }
   ]
 }`;
 
   const messages = [
     { role: 'system', content: systemPrompt },
-    { role: 'user', content: `Create a custom workout for me based on this request: "${promptText}".` }
+    { role: 'user', content: `Create custom workout exercise objects for: "${promptText}".` }
   ];
 
   return callOpenAI({ apiKey, messages, responseFormat: 'json_object', model: 'gpt-4o-mini' });

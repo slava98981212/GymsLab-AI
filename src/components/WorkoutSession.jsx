@@ -328,11 +328,73 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     });
   };
 
+  const parseLocalCustomWorkoutPrompt = (promptText) => {
+    if (!promptText) return null;
+    const text = promptText.trim();
+    const parts = text.split(/,|;|\band\b/i);
+    const exercisesFound = [];
+
+    parts.forEach((part) => {
+      const p = part.trim();
+      if (!p) return;
+
+      const match1 = p.match(/(.+?)\s+(\d+)\s*sets?\s*(?:of)?\s*(\d+)\s*reps?/i);
+      const match2 = p.match(/(.+?)\s+(\d+)\s*x\s*(\d+)/i);
+
+      if (match1) {
+        exercisesFound.push({
+          name: match1[1].trim(),
+          targetSets: parseInt(match1[2], 10),
+          targetReps: parseInt(match1[3], 10),
+          restSec: 120,
+          note: `Target: ${match1[2]} sets x ${match1[3]} reps`
+        });
+      } else if (match2) {
+        exercisesFound.push({
+          name: match2[1].trim(),
+          targetSets: parseInt(match2[2], 10),
+          targetReps: parseInt(match2[3], 10),
+          restSec: 120,
+          note: `Target: ${match2[2]} sets x ${match2[3]} reps`
+        });
+      }
+    });
+
+    if (exercisesFound.length > 0) {
+      return {
+        workoutTitle: `Custom Workout: ${exercisesFound[0].name}`,
+        exercises: exercisesFound
+      };
+    }
+
+    return null;
+  };
+
   const handleGenerateAiWorkout = async () => {
     if (!aiPromptText.trim()) return;
+
+    // Fast local regex check first (e.g., "Leg press 3 sets 5 reps")
+    const localResult = parseLocalCustomWorkoutPrompt(aiPromptText);
+    if (localResult && localResult.exercises.length > 0) {
+      handleSelectRoutine({
+        id: `custom_${Date.now()}`,
+        title: localResult.workoutTitle,
+        exercises: localResult.exercises
+      }, false);
+      setAiPromptText('');
+      return;
+    }
+
     const effectiveKey = apiKey || profile?.openaiKey || profile?.apiKey;
     if (!effectiveKey) {
-      alert('Please configure your OpenAI API Key in Settings to generate custom AI workouts.');
+      handleSelectRoutine({
+        id: `custom_${Date.now()}`,
+        title: aiPromptText.trim(),
+        exercises: [
+          { name: aiPromptText.trim(), targetSets: 4, targetReps: 10, restSec: 120 }
+        ]
+      }, false);
+      setAiPromptText('');
       return;
     }
 
@@ -352,11 +414,25 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
         }, false);
         setAiPromptText('');
       } else {
-        alert('AI could not parse a valid workout routine from your prompt. Please try describing it differently!');
+        handleSelectRoutine({
+          id: `custom_${Date.now()}`,
+          title: aiPromptText.trim(),
+          exercises: [
+            { name: aiPromptText.trim(), targetSets: 4, targetReps: 10, restSec: 120 }
+          ]
+        }, false);
+        setAiPromptText('');
       }
     } catch (err) {
       console.error('Error generating AI workout:', err);
-      alert('Failed to generate AI workout: ' + err.message);
+      handleSelectRoutine({
+        id: `custom_${Date.now()}`,
+        title: aiPromptText.trim(),
+        exercises: [
+          { name: aiPromptText.trim(), targetSets: 4, targetReps: 10, restSec: 120 }
+        ]
+      }, false);
+      setAiPromptText('');
     } finally {
       setAiGenerating(false);
     }
