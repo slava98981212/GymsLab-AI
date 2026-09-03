@@ -807,6 +807,8 @@ export default function App() {
             allDailyLogs={allDailyLogsList}
             onUpdateLog={handleUpdateDailyLog}
             onSelectDate={setSelectedDate}
+            profile={profile}
+            apiKey={apiKey}
           />
         )}
 

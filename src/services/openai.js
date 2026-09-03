@@ -422,3 +422,38 @@ Return JSON:
 
   return callOpenAI({ apiKey, messages, responseFormat: 'json_object', model: 'gpt-4o' });
 }
+
+/**
+ * AI Custom Workout Generator from User Prompt
+ */
+export async function generateCustomWorkoutFromPrompt({ apiKey, promptText, profile = {} }) {
+  const systemPrompt = `You are GymsLab AI, an elite strength & conditioning coach.
+Generate a high-quality, customized workout routine based on the user's input prompt.
+
+User Profile:
+- Goal: ${profile.primaryGoal || 'Hypertrophy & Strength'}
+- Target Weight: ${profile.targetWeight || 'N/A'} kg
+
+Return ONLY a JSON object formatted strictly as:
+{
+  "workoutTitle": "Catchy Title for the Workout",
+  "exercises": [
+    {
+      "name": "Exercise Name or Superset Name",
+      "isSuperset": false,
+      "subExercises": ["Exercise A (10 reps)", "Exercise B (12 reps)"],
+      "targetSets": 4,
+      "targetReps": 10,
+      "restSec": 90,
+      "note": "Form cue or coach note"
+    }
+  ]
+}`;
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: `Create a custom workout for me based on this request: "${promptText}".` }
+  ];
+
+  return callOpenAI({ apiKey, messages, responseFormat: 'json_object', model: 'gpt-4o-mini' });
+}
