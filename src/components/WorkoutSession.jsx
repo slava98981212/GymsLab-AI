@@ -23,13 +23,17 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
   // Calculate day name corresponding to dailyLog.date
   const getDayNameFromDateStr = (dateStr) => {
     if (!dateStr) return dayNames[new Date().getDay()];
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
+    const [y, m, dayNum] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, dayNum);
     return dayNames[dateObj.getDay()];
   };
 
   const [selectedDay, setSelectedDay] = useState(() => getDayNameFromDateStr(dailyLog?.date));
   const [activeStage, setActiveStage] = useState('main');
+
+  // Single source program definitions for current day (must come before activeWorkoutTitle evaluation)
+  const currentDayProgram = WEEKLY_WORKOUT_SPLIT[selectedDay] || WEEKLY_WORKOUT_SPLIT.Saturday;
+  const isMonWedFri = ['Monday', 'Wednesday', 'Friday'].includes(selectedDay);
 
   // Active Workout Type & Title derived directly from dailyLog state
   const activeWorkoutType = dailyLog?.activeWorkoutType || 'workout1';
@@ -71,9 +75,9 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
     if (diff > 0) {
       diff -= 7;
     }
-    const d = new Date(now);
-    d.setDate(now.getDate() + diff);
-    return d.toISOString().slice(0, 10);
+    const dt = new Date(now);
+    dt.setDate(now.getDate() + diff);
+    return dt.toISOString().slice(0, 10);
   };
 
   const handleSelectDayTab = (targetDayName) => {
@@ -83,9 +87,6 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
       onSelectDate(targetDateStr);
     }
   };
-
-  const currentDayProgram = WEEKLY_WORKOUT_SPLIT[selectedDay] || WEEKLY_WORKOUT_SPLIT.Saturday;
-  const isMonWedFri = ['Monday', 'Wednesday', 'Friday'].includes(selectedDay);
 
   // Overall Workout Active State & Timer
   const [workoutActive, setWorkoutActive] = useState(dailyLog?.workoutActive || false);
@@ -908,14 +909,14 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
           <Calendar size={14} color="var(--primary-cyan)" /> Select Workout Day:
         </div>
         <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.3rem', WebkitOverflowScrolling: 'touch' }}>
-          {['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((d) => {
-            const dateForD = getDateForDayName(d);
-            const isToday = d === todayDayName;
-            const isSelected = dailyLog?.date === dateForD || d === selectedDay;
+          {['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((dayItem) => {
+            const dateForD = getDateForDayName(dayItem);
+            const isToday = dayItem === todayDayName;
+            const isSelected = dailyLog?.date === dateForD || dayItem === selectedDay;
             return (
               <button
-                key={d}
-                onClick={() => handleSelectDayTab(d)}
+                key={dayItem}
+                onClick={() => handleSelectDayTab(dayItem)}
                 style={{
                   flex: '1 0 auto',
                   minWidth: '64px',
@@ -933,7 +934,7 @@ export default function WorkoutSession({ dailyLog, allDailyLogs, onUpdateLog, on
                   boxShadow: isSelected ? '0 0 12px var(--primary-cyan-glow)' : 'none'
                 }}
               >
-                <div>{d.slice(0, 3)} {isToday && '⭐'}</div>
+                <div>{dayItem.slice(0, 3)} {isToday && '⭐'}</div>
                 <div style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 500, marginTop: '0.1rem' }}>
                   {dateForD.slice(5)}
                 </div>
